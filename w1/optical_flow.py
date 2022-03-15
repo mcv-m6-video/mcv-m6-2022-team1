@@ -70,7 +70,7 @@ def pepn(predicted, gt, threshold=3):
     maks_from_gt = gt[:, :, 2] == 1
 
     total = len((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt])
-    error_count = ((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt] > threshold).sum(-1)
+    error_count = np.sum(((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt] > threshold))
 
     return error_count / total
 
@@ -88,6 +88,9 @@ def plot_error(predicted, gt):
     plt.ylabel('The Percentage of Pixels')
     plt.savefig('./errors.png')
     plt.show()
+
+    img_err = np.zeros(shape=gt[:, :, 1].shape)
+
 
 
 if __name__ == '__main__':
