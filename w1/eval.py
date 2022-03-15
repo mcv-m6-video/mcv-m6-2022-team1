@@ -257,17 +257,66 @@ def compute_avg_precision(
 
 
 def dropout_predictions(pred: pd.DataFrame, prob: float) -> pd.DataFrame:
+    """
+    Removes rows in a pandas DataFrame with probability `prob`.
+
+    Parameters
+    ----------
+    pred: pd.DataFrame
+        Input sample dataset.
+    prob: float
+        Scalar in range [0, 1.0] that denotes the probability of removing a
+        single row.
+
+    Returns
+    -------
+    pd.DataFrame
+        Modified sample dataset with roughly ```prob * len(pred)``` samples.
+    """
     decision = np.random.rand(len(pred)) > prob
     pred = pred[decision]
     return pred
 
 
 def offset_predictions(pred: pd.DataFrame, offset: int) -> pd.DataFrame:
+    """
+    Offsets all boxes by a fixed integer number.
+
+    Parameters
+    ----------
+    pred: pd.DataFrame
+        Input sample dataset.
+    offset: int
+        Amount by which to offset each bounding box.
+
+    Returns
+    -------
+    pd.DataFrame
+        Modified sample dataset.
+
+    """
     pred[["left", "top"]] = pred[["left", "top"]] + offset
     return pred
 
 
-def iou_offset(gt: np.ndarray, offset: int) -> float:
+def iou_offset(gt: np.ndarray, offset: int) -> np.ndarray:
+    """
+    Computes the IoU of a dataset against itself considering a fixed offset.
+    This is a simple closed-form solution that allows easy debugging for IoU
+    functions.
+
+    Parameters
+    ----------
+    gt: np.ndarray
+        Set of bounding boxes in xyxy format.
+    offset: int
+        Amount by which to offset the boxes.
+
+    Returns
+    -------
+    np.ndarray
+        Intersection over union value of all the boxes against themselves.
+    """
     width = gt[:, 2] - gt[:, 0]
     height = gt[:, 3] - gt[:, 1]
 
@@ -282,6 +331,23 @@ def test_iou(
         offset: int,
         img_path: str
 ) -> float:
+    """
+    Test function to debug IoU.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+    offset: int
+        Amount by which to offset bounding boxes for testing.
+    img_path: str
+        Path to find input images for debugging.
+
+    Returns
+    -------
+    float
+        Proportion of correct IoU values.
+    """
 
     truth = load_annotations(gt_path)
 
