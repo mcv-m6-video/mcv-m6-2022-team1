@@ -3,7 +3,7 @@ import numpy as np
 import glob
 import os
 from OpticalFlowToolkit.lib import flowlib as fl
-
+from matplotlib import pyplot as plt
 
 def optical_flow(frames_folder):
     onlyfiles = sorted(filter(os.path.isfile,
@@ -73,6 +73,21 @@ def pepn(predicted, gt, threshold=3):
 
     return error_count / total
 
+def plot_error(predicted, gt):
+
+    if predicted.shape != gt.shape:
+        predicted = np.resize(predicted, gt.shape)
+
+    maks_from_gt = gt[:, :, 2] == 1
+
+    plt.figure()
+    plt.hist((abs(gt[:, :, :2] - predicted[:, :, :2]))[maks_from_gt], bins=200, density=True)
+    plt.title('Density of Optical Flow Error')
+    plt.xlabel('Optical Flow error')
+    plt.ylabel('The Percentage of Pixels')
+    plt.savefig('./errors.png')
+    plt.show()
+
 
 if __name__ == '__main__':
     # optical_flow('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/testing/image_2')
@@ -83,3 +98,4 @@ if __name__ == '__main__':
     pred_flow = fl.read_flow(pred)
     print(mse(predicted=pred_flow, gt=gt_flow))
     print(pepn(predicted=pred_flow, gt=gt_flow))
+    plot_error(pred_flow, gt_flow)
