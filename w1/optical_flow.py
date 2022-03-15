@@ -5,6 +5,7 @@ import os
 from OpticalFlowToolkit.lib import flowlib as fl
 from matplotlib import pyplot as plt
 
+
 def optical_flow(frames_folder):
     onlyfiles = sorted(filter(os.path.isfile,
                               glob.glob(frames_folder + '/**/*', recursive=True)))
@@ -69,19 +70,19 @@ def pepn(predicted, gt, threshold=3):
     maks_from_gt = gt[:, :, 2] == 1
 
     total = len((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt])
-    error_count = ((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt] > threshold).sum()
+    error_count = ((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt] > threshold).sum(-1)
 
     return error_count / total
 
-def plot_error(predicted, gt):
 
+def plot_error(predicted, gt):
     if predicted.shape != gt.shape:
         predicted = np.resize(predicted, gt.shape)
 
     maks_from_gt = gt[:, :, 2] == 1
 
     plt.figure()
-    plt.hist((abs(gt[:, :, :2] - predicted[:, :, :2]))[maks_from_gt], bins=200, density=True)
+    plt.hist(np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)).sum(-1)[maks_from_gt], bins=30, density=True)
     plt.title('Density of Optical Flow Error')
     plt.xlabel('Optical Flow error')
     plt.ylabel('The Percentage of Pixels')
