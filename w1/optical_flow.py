@@ -108,6 +108,12 @@ def plot_error(predicted, gt):
     aux_img = aux_img*factor
     cv2.imwrite("./error_view_better.png", aux_img)
 
+    # colors
+
+    plt.imshow(aux_img, cmap='hot', interpolation='nearest')
+    plt.savefig("./error_colours.png",dpi=1000)
+    plt.show()
+
 if __name__ == '__main__':
     # optical_flow('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/testing/image_2')
 
