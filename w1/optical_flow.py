@@ -67,6 +67,7 @@ def mse(predicted, gt):
 
 def pepn(predicted, gt, threshold=3):
     if predicted.shape != gt.shape:
+        # gt = gt[:-4, :-12, :]
         predicted = np.resize(predicted, gt.shape)
 
     maks_from_gt = gt[:, :, 2] == 1
@@ -80,6 +81,7 @@ def pepn(predicted, gt, threshold=3):
 def plot_error(predicted, gt):
 
     if predicted.shape != gt.shape:
+        # gt = gt[:-4, :-12, :]
         predicted = np.resize(predicted, gt.shape)
 
     maks_from_gt = gt[:, :, 2] == 1
@@ -99,10 +101,14 @@ def plot_error(predicted, gt):
 if __name__ == '__main__':
     # optical_flow('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/testing/image_2')
 
-    pred = '../data_of/LKflow_000045_10.png'
-    gt_ = '../data_of/000045_10.png'
-    gt_flow = fl.read_flow(gt_)
-    pred_flow = fl.read_flow(pred)
-    print(mse(predicted=pred_flow, gt=gt_flow))
-    print(pepn(predicted=pred_flow, gt=gt_flow))
-    plot_error(pred_flow, gt_flow)
+    pred = ['../data_of/LKflow_000045_10.png','../data_of/LKflow_000157_10.png']
+    gt_ = ['../data_of/000045_10.png', '../data_of/000157_10.png']
+
+    for i in range(2):
+        gt_flow = fl.read_flow(gt_[i])
+        pred_flow = fl.read_flow(pred[i])
+        print(f"MSE error (image {i+1}): {mse(predicted=pred_flow, gt=gt_flow)}")
+        print(f"PEPN error (image {i+1}): {pepn(predicted=pred_flow, gt=gt_flow)}")
+        plot_error(pred_flow, gt_flow)
+
+
