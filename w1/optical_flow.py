@@ -7,8 +7,7 @@ from OpticalFlowToolkit.lib import flowlib as fl
 
 def optical_flow(frames_folder):
     onlyfiles = sorted(filter(os.path.isfile,
-                                  glob.glob(frames_folder + '/**/*', recursive=True)))
-
+                              glob.glob(frames_folder + '/**/*', recursive=True)))
 
     feature_params = dict(maxCorners=200,
                           qualityLevel=0.3,
@@ -21,7 +20,7 @@ def optical_flow(frames_folder):
 
     for i in range(len(onlyfiles) - 1):
 
-        print(onlyfiles[i],onlyfiles[i+1])
+        print(onlyfiles[i], onlyfiles[i + 1])
 
         # Take first frame and find corners in it
         old_frame = cv2.imread(onlyfiles[i])
@@ -41,8 +40,8 @@ def optical_flow(frames_folder):
         for j, (new, old) in enumerate(zip(good_new, good_old)):
             a, b = new.ravel()
             c, d = old.ravel()
-            a,b,c,d = int(a), int(b), int(c), int(d)
-            mask = cv2.arrowedLine(frame, (a, b), (c, d), (0,255,0), 2)
+            a, b, c, d = int(a), int(b), int(c), int(d)
+            mask = cv2.arrowedLine(frame, (a, b), (c, d), (0, 255, 0), 2)
 
         cv2.imshow('frame', mask)
         k = cv2.waitKey(30) & 0xff
@@ -55,17 +54,32 @@ def optical_flow(frames_folder):
 
 
 def mse(predicted, gt):
-    mse = 0
-    N = prev.shape[0]
-    M = prev.shape[1]
-    mse = np.sum((prev - curr) ** 2) / (M * N)
+    if predicted.shape != gt.shape:
+        predicted = np.resize(predicted, gt.shape)
 
+    maks_from_gt = gt[:, :, 2] == 1
+
+    return np.mean(np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)).sum(-1)[maks_from_gt])
+
+
+def pepn(predicted, gt, threshold=3):
+    if predicted.shape != gt.shape:
+        predicted = np.resize(predicted, gt.shape)
+
+    maks_from_gt = gt[:, :, 2] == 1
+
+    total = len((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt])
+    error_count = ((gt[:, :, :2] - predicted[:, :, :2])[maks_from_gt] > threshold).sum()
+
+    return error_count / total
 
 
 if __name__ == '__main__':
-
     # optical_flow('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/testing/image_2')
 
-    # pred = 'home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/results_opticalflow_kitti/results/LKflow_000045_10.png'
-    # gt_ = '/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/training/flow_noc/000045_10.png'
-    # fl.visualize_flow(fl.read_flow(gt_), 'RGB')
+    pred = '/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/results_opticalflow_kitti/results/LKflow_000045_10.png'
+    gt_ = '/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/training/flow_noc/000045_10.png'
+    gt_flow = fl.read_flow(gt_)
+    pred_flow = fl.read_flow(pred)
+    print(mse(predicted=pred_flow, gt=gt_flow))
+    print(pepn(predicted=pred_flow, gt=gt_flow))
