@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 
+# TODO: Should probably refactor to avoid these
+import matplotlib.image as mpimg
+from viz import draw_boxes
+
 
 def load_annotations(path: str) -> pd.DataFrame:
     """
@@ -22,8 +26,8 @@ def load_annotations(path: str) -> pd.DataFrame:
     ann = pd.read_csv(
         path,
         sep=",",
-        names=["frame", "ID", "left", "top", "width", "height", "confidence", "null1",
-               "null2", "null3"]
+        names=["frame", "ID", "left", "top", "width", "height", "confidence",
+               "null1", "null2", "null3"]
     )
     ann = ann[["frame", "ID", "left", "top", "width", "height", "confidence"]]
     return ann
@@ -108,6 +112,39 @@ def iou(
     return intr_t / union
 
 
+def select_bboxes(inter: np.ndarray, thresh: float) -> np.ndarray:
+    """
+    From the output of IoU (an NxM matrix where N is the number of ground truth
+    samples and M is the number of predictions and the value it contains is the
+    Intersection Over Union between the n-th and m-th box), generates the chosen
+    predicted bounding boxes assuming they are above a set threshold.
+
+    Parameters
+    ----------
+    inter: np.ndarray
+        NxM matrix where N is the number of ground truth
+        samples and M is the number of predictions and the value it contains is the
+        intersection-over-union between the n-th and m-th box.
+    thresh: float
+        Acceptance value for Intersection over Union.
+
+    Returns
+    -------
+    np.ndarray
+        N-length array with the selected predicted box at each position. If a
+        gt box has no corresponding prediction, -1 is returned accordingly.
+    """
+    inter[inter < np.stack([np.max(inter, axis=0)] * inter.shape[0])] = 0.0
+    inter = inter > thresh
+    ind_max = np.where(
+        np.max(inter, axis=1) > thresh,
+        np.argmax(inter, axis=1),
+        -1
+    )
+
+    return ind_max
+
+
 def average_precision_frame(
         gt: np.ndarray,
         pred: np.ndarray,
@@ -137,7 +174,7 @@ def average_precision_frame(
         Average precision for the given bounding boxes.
     """
     inter = iou(gt, pred)
-    ind_max = np.where(inter >= thresh, np.argmax(inter, axis=0), -1)
+    ind_max = select_bboxes(inter, thresh)
 
     tp_evol = np.cumsum(ind_max >= 0)
     pre = tp_evol / pred.shape[0]
@@ -151,7 +188,7 @@ def average_precision_frame(
         out_pre[len(pre) - ii - 1] = curr_max
 
     sampling_points = np.arange(0.0, 1.01, 0.1)
-    pre_ind = rec[None, :] >= sampling_points[:, None]
+    pre_ind = rec[None,:] >= sampling_points[:, None]
     pre_ind = np.argmax(pre_ind, axis=1)
 
     ap = sum(out_pre[pre_ind]) / 11
@@ -162,6 +199,7 @@ def average_precision_frame(
 def compute_avg_precision(
         gt_path: str,
         pd_path: str,
+        iou_thresh: float,
         alter_prediction: callable = None,
         add_params: dict = None,
 ) -> dict:
@@ -176,6 +214,8 @@ def compute_avg_precision(
         Path to the ground truth file.
     pd_path: str
         Path to the prediction file.
+    iou_thresh: float
+        IoU threshold above which a prediction is considered correct.
     alter_prediction: callable
         Function to modify the prediction (to test stochastic modifications
         for instance).
@@ -211,12 +251,121 @@ def compute_avg_precision(
         if gt_frame.shape[0] == 0 or pd_frame.shape[0] == 0:
             output[frame_id] = 0.0
         else:
-            output[frame_id] = average_precision_frame(gt_frame, pd_frame, 0.5)
+            output[frame_id] = average_precision_frame(gt_frame, pd_frame, iou_thresh)
 
     return output
 
 
 def dropout_predictions(pred: pd.DataFrame, prob: float) -> pd.DataFrame:
+    """
+    Removes rows in a pandas DataFrame with probability `prob`.
+
+    Parameters
+    ----------
+    pred: pd.DataFrame
+        Input sample dataset.
+    prob: float
+        Scalar in range [0, 1.0] that denotes the probability of removing a
+        single row.
+
+    Returns
+    -------
+    pd.DataFrame
+        Modified sample dataset with roughly ```prob * len(pred)``` samples.
+    """
     decision = np.random.rand(len(pred)) > prob
     pred = pred[decision]
     return pred
+
+
+def offset_predictions(pred: pd.DataFrame, offset: int) -> pd.DataFrame:
+    """
+    Offsets all boxes by a fixed integer number.
+
+    Parameters
+    ----------
+    pred: pd.DataFrame
+        Input sample dataset.
+    offset: int
+        Amount by which to offset each bounding box.
+
+    Returns
+    -------
+    pd.DataFrame
+        Modified sample dataset.
+
+    """
+    pred[["left", "top"]] = pred[["left", "top"]] + offset
+    return pred
+
+
+def iou_offset(gt: np.ndarray, offset: int) -> np.ndarray:
+    """
+    Computes the IoU of a dataset against itself considering a fixed offset.
+    This is a simple closed-form solution that allows easy debugging for IoU
+    functions.
+
+    Parameters
+    ----------
+    gt: np.ndarray
+        Set of bounding boxes in xyxy format.
+    offset: int
+        Amount by which to offset the boxes.
+
+    Returns
+    -------
+    np.ndarray
+        Intersection over union value of all the boxes against themselves.
+    """
+    width = gt[:, 2] - gt[:, 0]
+    height = gt[:, 3] - gt[:, 1]
+
+    intersect = (width - offset) * (height - offset)
+    union = (2 * width * height) - intersect
+
+    return intersect / union
+
+
+def test_iou(
+        gt_path: str,
+        offset: int,
+        img_path: str
+) -> float:
+    """
+    Test function to debug IoU.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+    offset: int
+        Amount by which to offset bounding boxes for testing.
+    img_path: str
+        Path to find input images for debugging.
+
+    Returns
+    -------
+    float
+        Proportion of correct IoU values.
+    """
+
+    truth = load_annotations(gt_path)
+
+    frame_indices = pd.unique(truth["frame"])
+    correct = 0
+    total = 0
+
+    for frame_id in frame_indices:
+        gt_frame = vectorise_annotations(truth[truth["frame"] == frame_id])
+        iou_normal = np.max(iou(gt_frame, gt_frame + offset), axis=1)
+        iou_theory = iou_offset(gt_frame, offset)
+
+        if np.any(np.not_equal(iou_normal, iou_theory)):
+            print(frame_id, iou_theory, iou_normal)
+            img = mpimg.imread(img_path + f"{frame_id:05}.jpg")
+            draw_boxes(img, gt_frame, gt_frame + offset)
+
+        correct += np.count_nonzero(iou_normal == iou_theory)
+        total += np.prod(iou_normal.shape)
+
+    return correct / total
