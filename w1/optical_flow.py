@@ -90,13 +90,23 @@ def plot_error(predicted, gt):
 
     for i in range(3):
         plt.figure(i)
-        plt.hist(error, bins=30 + i * 10, density=True)
+        plt.hist(error, bins=30 + i * 30, density=True)
         plt.title('Density of Optical Flow Error')
         plt.xlabel('Optical Flow error')
         plt.ylabel('The Percentage of Pixels')
         plt.savefig(f'./errors_{i}.png')
         plt.show()
 
+    aux_img = np.mean(np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)), 2)
+    plt.imshow(aux_img)
+    cv2.imwrite("./error_view.png", aux_img)
+
+    # same but better
+
+    max = aux_img.max()
+    factor = 255/max
+    aux_img = aux_img*factor
+    cv2.imwrite("./error_view_better.png", aux_img)
 
 if __name__ == '__main__':
     # optical_flow('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/testing/image_2')
@@ -105,6 +115,7 @@ if __name__ == '__main__':
     gt_ = ['../data_of/000045_10.png', '../data_of/000157_10.png']
 
     for i in range(2):
+        print(gt_[i])
         gt_flow = fl.read_flow(gt_[i])
         pred_flow = fl.read_flow(pred[i])
         print(f"MSE error (image {i+1}): {mse(predicted=pred_flow, gt=gt_flow)}")
