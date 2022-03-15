@@ -60,7 +60,9 @@ def mse(predicted, gt):
 
     maks_from_gt = gt[:, :, 2] == 1
 
-    return np.mean(np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)).sum(-1)[maks_from_gt])
+    error = np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)).sum(-1)[maks_from_gt]
+
+    return np.mean(error)
 
 
 def pepn(predicted, gt, threshold=3):
@@ -76,28 +78,29 @@ def pepn(predicted, gt, threshold=3):
 
 
 def plot_error(predicted, gt):
+
     if predicted.shape != gt.shape:
         predicted = np.resize(predicted, gt.shape)
 
     maks_from_gt = gt[:, :, 2] == 1
 
-    plt.figure()
-    plt.hist(np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)).sum(-1)[maks_from_gt], bins=30, density=True)
-    plt.title('Density of Optical Flow Error')
-    plt.xlabel('Optical Flow error')
-    plt.ylabel('The Percentage of Pixels')
-    plt.savefig('./errors.png')
-    plt.show()
+    error = np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)).sum(-1)[maks_from_gt]
 
-    img_err = np.zeros(shape=gt[:, :, 1].shape)
-
+    for i in range(3):
+        plt.figure(i)
+        plt.hist(error, bins=30 + i * 10, density=True)
+        plt.title('Density of Optical Flow Error')
+        plt.xlabel('Optical Flow error')
+        plt.ylabel('The Percentage of Pixels')
+        plt.savefig(f'./errors_{i}.png')
+        plt.show()
 
 
 if __name__ == '__main__':
     # optical_flow('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/testing/image_2')
 
-    pred = '/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/results_opticalflow_kitti/results/LKflow_000045_10.png'
-    gt_ = '/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/training/flow_noc/000045_10.png'
+    pred = '../data_of/LKflow_000045_10.png'
+    gt_ = '../data_of/000045_10.png'
     gt_flow = fl.read_flow(gt_)
     pred_flow = fl.read_flow(pred)
     print(mse(predicted=pred_flow, gt=gt_flow))
