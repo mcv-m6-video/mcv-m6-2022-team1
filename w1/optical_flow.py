@@ -78,7 +78,7 @@ def pepn(predicted, gt, threshold=3):
     return error_count / total
 
 
-def plot_error(predicted, gt):
+def plot_error(predicted, gt, original_):
 
     if predicted.shape != gt.shape:
         # gt = gt[:-4, :-12, :]
@@ -114,18 +114,34 @@ def plot_error(predicted, gt):
     plt.savefig("./error_colours.png",dpi=1000)
     plt.show()
 
+    # optical flow quiver
+    X, Y = np.meshgrid(np.arange(0, predicted.shape[1], 1), np.arange(0, predicted.shape[0], 1))
+
+    u, v = predicted[:, :, 0], predicted[:, :, 1]
+
+    plt.figure()
+    plt.title("Optical flow")
+    step = 13
+    Q = plt.quiver(X[::step, ::step], Y[::step, ::step], u[::step, ::step], v[::step, ::step], np.hypot(u, v)[::step, ::step],
+                   units='x', pivot='tail', width=0.9, scale=0.05)
+
+    original_ = cv2.cvtColor(original_, cv2.COLOR_BGR2RGB)
+    plt.imshow(original_)
+    plt.savefig("./optical_flow.png", dpi=1000)
+    plt.show()
+
 if __name__ == '__main__':
     # optical_flow('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w1/data_scene_flow/testing/image_2')
 
     pred = ['../data_of/LKflow_000045_10.png','../data_of/LKflow_000157_10.png']
     gt_ = ['../data_of/000045_10.png', '../data_of/000157_10.png']
-
+    original = ['../data_of/original_000045_10.png', '../data_of/original_000157_10.png']
     for i in range(2):
         print(gt_[i])
         gt_flow = fl.read_flow(gt_[i])
         pred_flow = fl.read_flow(pred[i])
-        print(f"MSE error (image {i+1}): {mse(predicted=pred_flow, gt=gt_flow)}")
-        print(f"PEPN error (image {i+1}): {pepn(predicted=pred_flow, gt=gt_flow)}")
-        plot_error(pred_flow, gt_flow)
+        # print(f"MSE error (image {i+1}): {mse(predicted=pred_flow, gt=gt_flow)}")
+        # print(f"PEPN error (image {i+1}): {pepn(predicted=pred_flow, gt=gt_flow)}")
+        plot_error(pred_flow, gt_flow, cv2.imread(original[i]))
 
 
