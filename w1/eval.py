@@ -428,17 +428,18 @@ def test_iou_std(
         mIoU[id] = np.mean(ious)
 
     plt.plot(vec_std,mIoU)
-    plt.title('AP vs normal noise')
-    plt.ylabel('Average precision')
+    plt.title('mIoU vs normal noise')
+    plt.ylabel('Mean Intersect over Union')
     plt.xlabel('Standard deviation [px]')
     
     return mIoU
+
 
 def test_iou_drop(
         gt_path: str,
 ) -> float:
     """
-    Test function to analyze IoU when adding normal noise.
+    Test function to analyze IoU when adding dropout.
 
     Parameters
     ----------
@@ -492,8 +493,180 @@ def test_iou_drop(
         mIoU[id] = np.mean(ious)
 
     plt.plot(vec_prob,mIoU)
+    plt.title('mIoU vs dropout')
+    plt.ylabel('Mean Intersect over Union')
+    plt.xlabel('Dropout')
+    
+    return mIoU
+
+
+def test_ap_drop(
+        gt_path: str,
+) -> float:
+    """
+    Test function to analyze AP when adding dropout.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+
+    Returns
+    -------
+    float
+        AP mean value.
+    """
+
+    truth = load_annotations(gt_path)
+    truth = vectorise_annotations(truth)
+    correct = 0
+    total = 0
+
+    vec_prob = np.arange(0,1.001,0.01)
+    mAP = np.zeros(vec_prob.shape)
+    area_r = (truth[:, 2] - truth[:, 0]) * (truth[:, 3] - truth[:, 1])
+    for id, prob in enumerate(vec_prob):
+        aps = []
+        print(prob)
+        for jjj in np.arange(1000):
+            # iou_normal = iou(truth, truth + np.random.normal(0,std,truth.shape))
+            # decision = np.random.rand(len(pred)) > prob
+            pred = copy.deepcopy(truth)
+            pred[np.random.rand(len(truth)) < prob] = [0, 0, 0, 0]
+            
+            intr_x = np.min((truth[:, 2], pred[:, 2]), axis=0) - \
+                np.max((truth[:, 0], pred[:, 0]), axis=0)
+            intr_x = np.maximum(intr_x,0)
+            intr_y = np.min((truth[:, 3], pred[:, 3]), axis=0) - \
+                np.max((truth[:, 1], pred[:, 1]), axis=0)
+            intr_y = np.maximum(intr_y, 0)
+
+            intr_t = intr_x * intr_y
+
+            # Union
+            
+            area_c = (pred[:, 2] - pred[:, 0]) * (pred[:, 3] - pred[:, 1])
+            area_c = np.maximum(area_c, 0)
+            
+            union = area_r + area_c - intr_t
+
+            iou_normal = intr_t / union
+        
+            # for i in np.arange(iou_normal.shape[0]):
+            # ious.append(iou_normal)
+            
+            tp = copy.deepcopy(iou_normal)
+            tp[iou_normal<0.5] = 0
+            tp[iou_normal>=0.5] = 1
+            tp_evol = np.cumsum(tp)
+            pre = tp_evol / np.arange(1, tp_evol.shape[0] + 1)
+            rec = tp_evol / truth.shape[0]
+
+            curr_max = -1
+            out_pre = np.zeros_like(pre)
+
+            for ii in range(len(pre)):
+                curr_max = max(pre[len(pre) - ii - 1], curr_max)
+                out_pre[len(pre) - ii - 1] = curr_max
+
+            sampling_points = np.arange(0.0, 1.01, 0.1)
+            pre_ind = rec[None,:] >= sampling_points[:, None]
+            pre_ind = np.where(np.any(pre_ind, axis=1), np.argmax(pre_ind, axis=1), -1)
+
+            ap = sum(np.where(pre_ind >= 0, out_pre[pre_ind], 0.0)) / 11
+            
+            aps.append(ap)
+                    
+        mAP[id] = np.mean(aps)
+
+    plt.plot(vec_prob,mAP)
     plt.title('AP vs dropout')
     plt.ylabel('Average precision')
     plt.xlabel('Dropout')
     
-    return mIoU
+    return mAP
+
+
+def test_ap_std(
+        gt_path: str,
+) -> float:
+    """
+    Test function to analyze AP when adding normal noise.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+
+    Returns
+    -------
+    float
+        AP mean value.
+    """
+
+    truth = load_annotations(gt_path)
+    truth = vectorise_annotations(truth)
+    correct = 0
+    total = 0
+
+    vec_std = np.arange(0,250.1,1)
+    mAP = np.zeros(vec_std.shape)
+    area_r = (truth[:, 2] - truth[:, 0]) * (truth[:, 3] - truth[:, 1])
+    for id, std in enumerate(vec_std):
+        aps = []
+        print(std)
+        for jjj in np.arange(1000):
+            # iou_normal = iou(truth, truth + np.random.normal(0,std,truth.shape))
+            pred = truth + np.random.normal(0,std,truth.shape)
+            
+            intr_x = np.min((truth[:, 2], pred[:, 2]), axis=0) - \
+                np.max((truth[:, 0], pred[:, 0]), axis=0)
+            intr_x = np.maximum(intr_x,0)
+            intr_y = np.min((truth[:, 3], pred[:, 3]), axis=0) - \
+                np.max((truth[:, 1], pred[:, 1]), axis=0)
+            intr_y = np.maximum(intr_y, 0)
+
+            intr_t = intr_x * intr_y
+
+            # Union
+            
+            area_c = (pred[:, 2] - pred[:, 0]) * (pred[:, 3] - pred[:, 1])
+            area_c = np.maximum(area_c, 0)
+            
+            union = area_r + area_c - intr_t
+
+            iou_normal = intr_t / union
+        
+            # for i in np.arange(iou_normal.shape[0]):
+            # ious.append(iou_normal)
+            
+            tp = copy.deepcopy(iou_normal)
+            tp[iou_normal<0.5] = 0
+            tp[iou_normal>=0.5] = 1
+            tp_evol = np.cumsum(tp)
+            pre = tp_evol / np.arange(1, tp_evol.shape[0] + 1)
+            rec = tp_evol / truth.shape[0]
+
+            curr_max = -1
+            out_pre = np.zeros_like(pre)
+
+            for ii in range(len(pre)):
+                curr_max = max(pre[len(pre) - ii - 1], curr_max)
+                out_pre[len(pre) - ii - 1] = curr_max
+
+            sampling_points = np.arange(0.0, 1.01, 0.1)
+            pre_ind = rec[None,:] >= sampling_points[:, None]
+            pre_ind = np.where(np.any(pre_ind, axis=1), np.argmax(pre_ind, axis=1), -1)
+
+            ap = sum(np.where(pre_ind >= 0, out_pre[pre_ind], 0.0)) / 11
+            
+            aps.append(ap)
+                    
+        mAP[id] = np.mean(aps)
+
+    plt.plot(vec_std,mAP)
+    plt.title('AP vs normal noise')
+    plt.ylabel('Average precision')
+    plt.xlabel('Standard deviation [px]')
+    
+    return mAP
