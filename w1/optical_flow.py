@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import glob
 import os
-from OpticalFlowToolkit.lib import flowlib as fl
+# from OpticalFlowToolkit.lib import flowlib as fl
+import flowlib as fl
 from matplotlib import pyplot as plt
 
 
@@ -85,7 +86,7 @@ def plot_error(predicted, gt, original_):
         predicted = np.resize(predicted, gt.shape)
 
     maks_from_gt = gt[:, :, 2] == 1
-
+    
     error = np.sqrt(np.power(gt[:, :, :2] - predicted[:, :, :2], 2)).sum(-1)[maks_from_gt]
 
     for i in range(3):
@@ -115,15 +116,15 @@ def plot_error(predicted, gt, original_):
     plt.show()
 
     # optical flow quiver
-    X, Y = np.meshgrid(np.arange(0, predicted.shape[1], 1), np.arange(0, predicted.shape[0], 1))
+    X, Y = np.meshgrid(np.arange(0, gt.shape[1], 1), np.arange(0, gt.shape[0], 1))
 
-    u, v = predicted[:, :, 0], predicted[:, :, 1]
+    u, v = gt[:, :, 0], gt[:, :, 1]
 
     plt.figure()
     plt.title("Optical flow")
     step = 13
     Q = plt.quiver(X[::step, ::step], Y[::step, ::step], u[::step, ::step], v[::step, ::step], np.hypot(u, v)[::step, ::step],
-                   units='x', pivot='tail', width=0.9, scale=0.05)
+                   units='x', pivot='tail', width=2, scale=0.05)
 
     original_ = cv2.cvtColor(original_, cv2.COLOR_BGR2RGB)
     plt.imshow(original_)
