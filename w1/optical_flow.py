@@ -4,7 +4,7 @@ import glob
 import os
 from OpticalFlowToolkit.lib import flowlib as fl
 from matplotlib import pyplot as plt
-# credits https://github.com/liruoteng/OpticalFlowToolkit.git
+# flowlib (used in KITTI codes) credits https://github.com/liruoteng/OpticalFlowToolkit.git
 
 def optical_flow(frames_folder):
     onlyfiles = sorted(filter(os.path.isfile,
