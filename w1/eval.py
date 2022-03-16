@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import copy
+import matplotlib.pyplot as plt
 
 # TODO: Should probably refactor to avoid these
 import matplotlib.image as mpimg
@@ -131,16 +133,17 @@ def select_bboxes(inter: np.ndarray, thresh: float) -> np.ndarray:
     Returns
     -------
     np.ndarray
-        N-length array with the selected predicted box at each position. If a
-        gt box has no corresponding prediction, -1 is returned accordingly.
+        M-length array with the selected GT box at each prediction. If a
+        prediction box has no corresponding gt, -1 is returned accordingly.
     """
-    inter[inter < np.stack([np.max(inter, axis=0)] * inter.shape[0])] = 0.0
-    inter = inter > thresh
-    ind_max = np.where(
-        np.max(inter, axis=1) > thresh,
-        np.argmax(inter, axis=1),
-        -1
-    )
+    n, m = inter.shape
+    ind_max = np.full(m, -1)
+
+    for ii in range(m):
+        above = inter[:, ii] >= thresh
+        if np.any(above):
+            ind_max[ii] = np.argmax(inter[:, ii])
+            inter[ind_max[ii],:] = 0.0
 
     return ind_max
 
@@ -174,10 +177,11 @@ def average_precision_frame(
         Average precision for the given bounding boxes.
     """
     inter = iou(gt, pred)
+    n, m = inter.shape
     ind_max = select_bboxes(inter, thresh)
 
     tp_evol = np.cumsum(ind_max >= 0)
-    pre = tp_evol / pred.shape[0]
+    pre = tp_evol / np.arange(1, m + 1)
     rec = tp_evol / gt.shape[0]
 
     curr_max = -1
@@ -189,9 +193,9 @@ def average_precision_frame(
 
     sampling_points = np.arange(0.0, 1.01, 0.1)
     pre_ind = rec[None,:] >= sampling_points[:, None]
-    pre_ind = np.argmax(pre_ind, axis=1)
+    pre_ind = np.where(np.any(pre_ind, axis=1), np.argmax(pre_ind, axis=1), -1)
 
-    ap = sum(out_pre[pre_ind]) / 11
+    ap = sum(np.where(pre_ind >= 0, out_pre[pre_ind], 0.0)) / 11
 
     return ap
 
@@ -238,17 +242,14 @@ def compute_avg_precision(
     if alter_prediction is not None:
         pred = alter_prediction(pred, **add_params)
 
-    frame_indices = np.unique(np.concatenate([
-        pd.unique(truth["frame"]), pd.unique(pred["frame"])
-    ]))
-
+    frame_indices = pd.unique(truth["frame"])
     output = {}
 
     for frame_id in frame_indices:
         gt_frame = vectorise_annotations(truth[truth["frame"] == frame_id])
         pd_frame = vectorise_annotations(pred[pred["frame"] == frame_id])
 
-        if gt_frame.shape[0] == 0 or pd_frame.shape[0] == 0:
+        if pd_frame.shape[0] == 0:
             output[frame_id] = 0.0
         else:
             output[frame_id] = average_precision_frame(gt_frame, pd_frame, iou_thresh)
@@ -426,5 +427,246 @@ def test_iou_std(
                     
         mIoU[id] = np.mean(ious)
 
+    plt.plot(vec_std,mIoU)
+    plt.title('mIoU vs normal noise')
+    plt.ylabel('Mean Intersect over Union')
+    plt.xlabel('Standard deviation [px]')
+    
     return mIoU
 
+
+def test_iou_drop(
+        gt_path: str,
+) -> float:
+    """
+    Test function to analyze IoU when adding dropout.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+
+    Returns
+    -------
+    float
+        IoU mean value.
+    """
+
+    truth = load_annotations(gt_path)
+    truth = vectorise_annotations(truth)
+    correct = 0
+    total = 0
+
+    vec_prob = np.arange(0,1.001,0.01)
+    mIoU = np.zeros(vec_prob.shape)
+    area_r = (truth[:, 2] - truth[:, 0]) * (truth[:, 3] - truth[:, 1])
+    for id, prob in enumerate(vec_prob):
+        ious = []
+        print(prob)
+        for jjj in np.arange(1000):
+            # iou_normal = iou(truth, truth + np.random.normal(0,std,truth.shape))
+            # decision = np.random.rand(len(pred)) > prob
+            pred = copy.deepcopy(truth)
+            pred[np.random.rand(len(truth)) < prob] = [0, 0, 0, 0]
+            
+            intr_x = np.min((truth[:, 2], pred[:, 2]), axis=0) - \
+                np.max((truth[:, 0], pred[:, 0]), axis=0)
+            intr_x = np.maximum(intr_x,0)
+            intr_y = np.min((truth[:, 3], pred[:, 3]), axis=0) - \
+                np.max((truth[:, 1], pred[:, 1]), axis=0)
+            intr_y = np.maximum(intr_y, 0)
+
+            intr_t = intr_x * intr_y
+
+            # Union
+            
+            area_c = (pred[:, 2] - pred[:, 0]) * (pred[:, 3] - pred[:, 1])
+            area_c = np.maximum(area_c, 0)
+            
+            union = area_r + area_c - intr_t
+
+            iou_normal = intr_t / union
+        
+            # for i in np.arange(iou_normal.shape[0]):
+            ious.append(iou_normal)
+                    
+        mIoU[id] = np.mean(ious)
+
+    plt.plot(vec_prob,mIoU)
+    plt.title('mIoU vs dropout')
+    plt.ylabel('Mean Intersect over Union')
+    plt.xlabel('Dropout')
+    
+    return mIoU
+
+
+def test_ap_drop(
+        gt_path: str,
+) -> float:
+    """
+    Test function to analyze AP when adding dropout.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+
+    Returns
+    -------
+    float
+        AP mean value.
+    """
+
+    truth = load_annotations(gt_path)
+    truth = vectorise_annotations(truth)
+    correct = 0
+    total = 0
+
+    vec_prob = np.arange(0,1.001,0.01)
+    mAP = np.zeros(vec_prob.shape)
+    area_r = (truth[:, 2] - truth[:, 0]) * (truth[:, 3] - truth[:, 1])
+    for id, prob in enumerate(vec_prob):
+        aps = []
+        print(prob)
+        for jjj in np.arange(1000):
+            # iou_normal = iou(truth, truth + np.random.normal(0,std,truth.shape))
+            # decision = np.random.rand(len(pred)) > prob
+            pred = copy.deepcopy(truth)
+            pred[np.random.rand(len(truth)) < prob] = [0, 0, 0, 0]
+            
+            intr_x = np.min((truth[:, 2], pred[:, 2]), axis=0) - \
+                np.max((truth[:, 0], pred[:, 0]), axis=0)
+            intr_x = np.maximum(intr_x,0)
+            intr_y = np.min((truth[:, 3], pred[:, 3]), axis=0) - \
+                np.max((truth[:, 1], pred[:, 1]), axis=0)
+            intr_y = np.maximum(intr_y, 0)
+
+            intr_t = intr_x * intr_y
+
+            # Union
+            
+            area_c = (pred[:, 2] - pred[:, 0]) * (pred[:, 3] - pred[:, 1])
+            area_c = np.maximum(area_c, 0)
+            
+            union = area_r + area_c - intr_t
+
+            iou_normal = intr_t / union
+        
+            # for i in np.arange(iou_normal.shape[0]):
+            # ious.append(iou_normal)
+            
+            tp = copy.deepcopy(iou_normal)
+            tp[iou_normal<0.5] = 0
+            tp[iou_normal>=0.5] = 1
+            tp_evol = np.cumsum(tp)
+            pre = tp_evol / np.arange(1, tp_evol.shape[0] + 1)
+            rec = tp_evol / truth.shape[0]
+
+            curr_max = -1
+            out_pre = np.zeros_like(pre)
+
+            for ii in range(len(pre)):
+                curr_max = max(pre[len(pre) - ii - 1], curr_max)
+                out_pre[len(pre) - ii - 1] = curr_max
+
+            sampling_points = np.arange(0.0, 1.01, 0.1)
+            pre_ind = rec[None,:] >= sampling_points[:, None]
+            pre_ind = np.where(np.any(pre_ind, axis=1), np.argmax(pre_ind, axis=1), -1)
+
+            ap = sum(np.where(pre_ind >= 0, out_pre[pre_ind], 0.0)) / 11
+            
+            aps.append(ap)
+                    
+        mAP[id] = np.mean(aps)
+
+    plt.plot(vec_prob,mAP)
+    plt.title('AP vs dropout')
+    plt.ylabel('Average precision')
+    plt.xlabel('Dropout')
+    
+    return mAP
+
+
+def test_ap_std(
+        gt_path: str,
+) -> float:
+    """
+    Test function to analyze AP when adding normal noise.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+
+    Returns
+    -------
+    float
+        AP mean value.
+    """
+
+    truth = load_annotations(gt_path)
+    truth = vectorise_annotations(truth)
+    correct = 0
+    total = 0
+
+    vec_std = np.arange(0,250.1,1)
+    mAP = np.zeros(vec_std.shape)
+    area_r = (truth[:, 2] - truth[:, 0]) * (truth[:, 3] - truth[:, 1])
+    for id, std in enumerate(vec_std):
+        aps = []
+        print(std)
+        for jjj in np.arange(1000):
+            # iou_normal = iou(truth, truth + np.random.normal(0,std,truth.shape))
+            pred = truth + np.random.normal(0,std,truth.shape)
+            
+            intr_x = np.min((truth[:, 2], pred[:, 2]), axis=0) - \
+                np.max((truth[:, 0], pred[:, 0]), axis=0)
+            intr_x = np.maximum(intr_x,0)
+            intr_y = np.min((truth[:, 3], pred[:, 3]), axis=0) - \
+                np.max((truth[:, 1], pred[:, 1]), axis=0)
+            intr_y = np.maximum(intr_y, 0)
+
+            intr_t = intr_x * intr_y
+
+            # Union
+            
+            area_c = (pred[:, 2] - pred[:, 0]) * (pred[:, 3] - pred[:, 1])
+            area_c = np.maximum(area_c, 0)
+            
+            union = area_r + area_c - intr_t
+
+            iou_normal = intr_t / union
+        
+            # for i in np.arange(iou_normal.shape[0]):
+            # ious.append(iou_normal)
+            
+            tp = copy.deepcopy(iou_normal)
+            tp[iou_normal<0.5] = 0
+            tp[iou_normal>=0.5] = 1
+            tp_evol = np.cumsum(tp)
+            pre = tp_evol / np.arange(1, tp_evol.shape[0] + 1)
+            rec = tp_evol / truth.shape[0]
+
+            curr_max = -1
+            out_pre = np.zeros_like(pre)
+
+            for ii in range(len(pre)):
+                curr_max = max(pre[len(pre) - ii - 1], curr_max)
+                out_pre[len(pre) - ii - 1] = curr_max
+
+            sampling_points = np.arange(0.0, 1.01, 0.1)
+            pre_ind = rec[None,:] >= sampling_points[:, None]
+            pre_ind = np.where(np.any(pre_ind, axis=1), np.argmax(pre_ind, axis=1), -1)
+
+            ap = sum(np.where(pre_ind >= 0, out_pre[pre_ind], 0.0)) / 11
+            
+            aps.append(ap)
+                    
+        mAP[id] = np.mean(aps)
+
+    plt.plot(vec_std,mAP)
+    plt.title('AP vs normal noise')
+    plt.ylabel('Average precision')
+    plt.xlabel('Standard deviation [px]')
+    
+    return mAP

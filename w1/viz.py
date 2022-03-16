@@ -7,7 +7,7 @@ def draw_boxes(
         frame: np.ndarray,
         gt_coords: np.ndarray,
         pd_coords: np.ndarray,
-        out_path: str = None
+        out_path:str=None
 ) -> None:
     """
     Produces a representation of a single frame with the provided ground truth
