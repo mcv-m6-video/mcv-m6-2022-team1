@@ -369,3 +369,62 @@ def test_iou(
         total += np.prod(iou_normal.shape)
 
     return correct / total
+
+
+def test_iou_std(
+        gt_path: str,
+) -> float:
+    """
+    Test function to analyze IoU when adding normal noise.
+
+    Parameters
+    ----------
+    gt_path: str
+        Path to the ground truth data.
+
+    Returns
+    -------
+    float
+        IoU mean value.
+    """
+
+    truth = load_annotations(gt_path)
+    truth = vectorise_annotations(truth)
+    correct = 0
+    total = 0
+
+    vec_std = np.arange(0,250.1,1)
+    mIoU = np.zeros(vec_std.shape)
+    area_r = (truth[:, 2] - truth[:, 0]) * (truth[:, 3] - truth[:, 1])
+    for id, std in enumerate(vec_std):
+        ious = []
+        print(std)
+        for jjj in np.arange(1000):
+            # iou_normal = iou(truth, truth + np.random.normal(0,std,truth.shape))
+            pred = truth + np.random.normal(0,std,truth.shape)
+            
+            intr_x = np.min((truth[:, 2], pred[:, 2]), axis=0) - \
+                np.max((truth[:, 0], pred[:, 0]), axis=0)
+            intr_x = np.maximum(intr_x,0)
+            intr_y = np.min((truth[:, 3], pred[:, 3]), axis=0) - \
+                np.max((truth[:, 1], pred[:, 1]), axis=0)
+            intr_y = np.maximum(intr_y, 0)
+
+            intr_t = intr_x * intr_y
+
+            # Union
+            
+            area_c = (pred[:, 2] - pred[:, 0]) * (pred[:, 3] - pred[:, 1])
+            area_c = np.maximum(area_c, 0)
+            
+            union = area_r + area_c - intr_t
+
+            iou_normal = intr_t / union
+        
+            # for i in np.arange(iou_normal.shape[0]):
+            ious.append(iou_normal)
+                    
+        mIoU[id] = np.mean(ious)
+
+    return mIoU
+
