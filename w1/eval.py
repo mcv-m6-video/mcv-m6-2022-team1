@@ -132,16 +132,17 @@ def select_bboxes(inter: np.ndarray, thresh: float) -> np.ndarray:
     Returns
     -------
     np.ndarray
-        N-length array with the selected predicted box at each position. If a
-        gt box has no corresponding prediction, -1 is returned accordingly.
+        M-length array with the selected GT box at each prediction. If a
+        prediction box has no corresponding gt, -1 is returned accordingly.
     """
-    inter[inter < np.stack([np.max(inter, axis=0)] * inter.shape[0])] = 0.0
-    inter = inter > thresh
-    ind_max = np.where(
-        np.max(inter, axis=1) > thresh,
-        np.argmax(inter, axis=1),
-        -1
-    )
+    n, m = inter.shape
+    ind_max = np.full(m, -1)
+
+    for ii in range(m):
+        above = inter[:, ii] >= thresh
+        if np.any(above):
+            ind_max[ii] = np.argmax(inter[:, ii])
+            inter[ind_max[ii],:] = 0.0
 
     return ind_max
 
@@ -175,10 +176,11 @@ def average_precision_frame(
         Average precision for the given bounding boxes.
     """
     inter = iou(gt, pred)
+    n, m = inter.shape
     ind_max = select_bboxes(inter, thresh)
 
     tp_evol = np.cumsum(ind_max >= 0)
-    pre = tp_evol / pred.shape[0]
+    pre = tp_evol / np.arange(1, m + 1)
     rec = tp_evol / gt.shape[0]
 
     curr_max = -1
@@ -190,9 +192,9 @@ def average_precision_frame(
 
     sampling_points = np.arange(0.0, 1.01, 0.1)
     pre_ind = rec[None,:] >= sampling_points[:, None]
-    pre_ind = np.argmax(pre_ind, axis=1)
+    pre_ind = np.where(np.any(pre_ind, axis=1), np.argmax(pre_ind, axis=1), -1)
 
-    ap = sum(out_pre[pre_ind]) / 11
+    ap = sum(np.where(pre_ind >= 0, out_pre[pre_ind], 0.0)) / 11
 
     return ap
 
@@ -239,17 +241,14 @@ def compute_avg_precision(
     if alter_prediction is not None:
         pred = alter_prediction(pred, **add_params)
 
-    frame_indices = np.unique(np.concatenate([
-        pd.unique(truth["frame"]), pd.unique(pred["frame"])
-    ]))
-
+    frame_indices = pd.unique(truth["frame"])
     output = {}
 
     for frame_id in frame_indices:
         gt_frame = vectorise_annotations(truth[truth["frame"] == frame_id])
         pd_frame = vectorise_annotations(pred[pred["frame"] == frame_id])
 
-        if gt_frame.shape[0] == 0 or pd_frame.shape[0] == 0:
+        if pd_frame.shape[0] == 0:
             output[frame_id] = 0.0
         else:
             output[frame_id] = average_precision_frame(gt_frame, pd_frame, iou_thresh)

@@ -4,8 +4,8 @@ import xml.etree.ElementTree as ET
 def generate_gt_from_xml(in_path: str, out_path: str) -> None:
     dataset = ET.parse(in_path).getroot()
 
-    # Separate annotations by frames. We do not care about the classes for the
-    # time being, we only grab cars
+    # Separate annotations by frames. We do not care about the classes for the time
+    # being, we only grab cars
 
     annotations = []
 
