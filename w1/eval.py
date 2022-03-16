@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 # TODO: Should probably refactor to avoid these
 import matplotlib.image as mpimg
@@ -426,5 +427,10 @@ def test_iou_std(
                     
         mIoU[id] = np.mean(ious)
 
+    plt.plot(vec_std,mIoU)
+    plt.title('AP vs normal noise')
+    plt.ylabel('Average precision')
+    plt.xlabel('Standard deviation [px]')
+    
     return mIoU
 
