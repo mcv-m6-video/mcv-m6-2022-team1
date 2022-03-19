@@ -40,11 +40,13 @@ class FrameLoader:
         else:
             self.images = self.images[nimgs:]
 
-    def __getitem__(self, item) -> np.ndarray:
+    def __getitem__(self, item) -> Tuple[int, np.ndarray]:
         img = cv2.imread(str(self.frame_path / self.images[item]))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        return img
+        img_id = int(self.images[item].split(".")[0])
+
+        return img_id, img
 
     def __len__(self) -> int:
         return len(self.images)
@@ -53,7 +55,7 @@ class FrameLoader:
         return FrameIterator(self)
 
     def probe(self) -> Tuple[Height, Width, Channels]:
-        img = self[0]
+        _, img = self[0]
         return img.shape
 
 
@@ -79,7 +81,8 @@ def generate_gt_from_xml(in_path: Path, ignore_parked: bool = True, ignore_class
         labels = {}
         last_label = -1
 
-    frames = set()
+    # FIXME: Hardcoded, but necessary to ensure all images appear on the gt
+    frames = set([ii for ii in range(1, 2142)])
     ann_id = 0
 
     # Create the annotations field
