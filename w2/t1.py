@@ -1,6 +1,7 @@
 import cv2
 import json
 
+from tqdm.auto import tqdm
 from data import FrameLoader
 from pathlib import Path
 from background_estimation import StillBackgroundEstimatorGrayscale, \
@@ -43,35 +44,42 @@ estimator.load_estimator(estimator_path / "estimator.npz")
 estimator.viz_estimator()
 
 print("Testing...")
-prediction = []
 
-for ii, (img_id, img) in enumerate(test_loader):
-    mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
+tol_values = [0.5 * x for x in range(1, 11)]
+prediction = [[] for _ in range(len(tol_values))]
 
-    # A median filter + closing of size n works well enough. We need a heuristic
-    # to join close connected regions if they are significantly small. Our
-    # solution atm is to just purge any small bboxes.
-    mask = cleanup_mask(mask, 11)
-    bboxes = get_bboxes(mask, 50)
+for ii, (img_id, img) in tqdm(enumerate(test_loader)):
+    for jj, tol in enumerate(tol_values):
+        estimator.set_tol(tol)
+        mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
 
-    prediction += [{
-        "image_id": img_id,
-        "category_id": 1,
-        "bbox": x,
-        "score": 1.0
-    } for x in bboxes]
+        # A median filter + closing of size n works well enough. We need a heuristic
+        # to join close connected regions if they are significantly small. Our
+        # solution atm is to just purge any small bboxes.
+        mask = cleanup_mask(mask, 11)
+        bboxes = get_bboxes(mask, 50)
+
+        prediction[jj] += [{
+            "image_id": img_id,
+            "category_id": 1,
+            "bbox": list(x),
+            "score": 1.0
+        } for x in bboxes]
 
     # draw_bboxes(img, bboxes)
     # show_image(mask)
     # show_image(img)
 
-with open(out_path / "prediction.json", 'w') as f_pred:
-    json.dump(prediction, f_pred)
-
 coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
-cocodt = coco.loadRes(out_path / "prediction.json")
-cocoeval = COCOeval(coco, cocodt, "bbox")
 
-cocoeval.evaluate()
-cocoeval.accumulate()
-cocoeval.summarize()
+for jj, tol in enumerate(tol_values):
+    with open(out_path / f"prediction_{jj}.json", 'w') as f_pred:
+        json.dump(prediction[jj], f_pred)
+
+    cocodt = coco.loadRes(prediction[jj])
+    cocoeval = COCOeval(coco, cocodt, 'bbox')
+
+    cocoeval.evaluate()
+    cocoeval.accumulate()
+    cocoeval.summarize()
+    pass
