@@ -16,7 +16,7 @@ def draw_bboxes(
         gt_bboxes: list = None,
         out_path: str = None
 ) -> None:
-    plt.figure()
+    plt.figure(dpi=150)
     plt.imshow(frame)
     plt.axis("off")
 
@@ -38,8 +38,9 @@ def draw_bboxes(
                     color="g",
                     alpha=0.3,
                 ))
+    plt.tight_layout()
     if out_path is None:
         plt.show()
     else:
-        plt.savefig(out_path)
+        plt.savefig(out_path, bbox_inches='tight', pad_inches=0)
     plt.close()
