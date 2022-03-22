@@ -92,7 +92,7 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
         # to join close connected regions if they are significantly small. Our
         # solution atm is to just purge any small bboxes.
         mask = cleanup_mask(mask, 11)
-        bboxes = get_bboxes(mask, 50)
+        bboxes = get_bboxes(mask, 400)
 
         prediction[jj] += [{
             "image_id": img_id,
@@ -101,9 +101,9 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
             "score": 1.0
         } for x in bboxes]
 
-    draw_bboxes(img, bboxes)
-    show_image(mask)
-    show_image(img)
+    # draw_bboxes(img, bboxes)
+    # show_image(mask)
+    # show_image(img)
 
 coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
 
