@@ -14,6 +14,7 @@ def draw_bboxes(
         frame: np.ndarray,
         pred_bboxes: list,
         gt_bboxes: list = None,
+        out_path: str = None
 ) -> None:
     plt.figure()
     plt.imshow(frame)
@@ -37,5 +38,8 @@ def draw_bboxes(
                     color="g",
                     alpha=0.3,
                 ))
-    plt.show()
+    if out_path is None:
+        plt.show()
+    else:
+        plt.savefig(out_path)
     plt.close()

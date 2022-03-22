@@ -106,7 +106,7 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
     show_image(mask)
     show_image(img)
 
-coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
+coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
 
 for jj, tol in enumerate(tol_values):
     with open(out_path / f"prediction_{jj}.json", 'w') as f_pred:
