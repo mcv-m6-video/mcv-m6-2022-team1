@@ -11,23 +11,44 @@ from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-frame_path = Path(
-    "/home/pau/Documents/master/M6/project/data/AICity_data/"
-    "AICity_data/train/S03/c010/vdo_frames"
-)
-estimator_path = Path(
-    "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
-    "S03/c010/estimators"
-)
-out_path = Path(
-    "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
-    "S03/c010/w2predictions"
-)
-gt_path = Path(
-    "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
-    "S03/c010/gt_coco"
-)
+who = 'dani'
 
+if who == 'pau':
+    frame_path = Path(
+        "/home/pau/Documents/master/M6/project/data/AICity_data/"
+        "AICity_data/train/S03/c010/vdo_frames"
+    )
+    estimator_path = Path(
+        "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
+        "S03/c010/estimators"
+    )
+    out_path = Path(
+        "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
+        "S03/c010/w2predictions"
+    )
+    gt_path = Path(
+        "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
+        "S03/c010/gt_coco"
+    )
+elif who == 'dani':
+    frame_path = Path(
+        "E:/Master/M6 - Video analysis/Project/"
+        "AICity_data/train/S03/c010/vdo_frames"
+    )
+    estimator_path = Path(
+        "E:/Master/M6 - Video analysis/Project/"
+        "AICity_data/train/S03/c010/estimators"
+    )
+    out_path = Path(
+        "E:/Master/M6 - Video analysis/Project/"
+        "AICity_data/train/S03/c010/w2predictions"
+    )
+    gt_path = Path(
+        "E:/Master/M6 - Video analysis/Project/"
+        "AICity_data/train/S03/c010/gt_coco"
+    )
+    
+print(estimator_path.is_dir())
 train_loader = FrameLoader(frame_path, .25, "lower")
 test_loader = FrameLoader(frame_path, .25, "upper")
 
