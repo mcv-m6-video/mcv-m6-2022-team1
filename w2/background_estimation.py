@@ -75,14 +75,14 @@ class StillBackgroundEstimatorGrayscale:
 
 
 class AdaptativeEstimatorGrayscale:
-    def __init__(self, loader: FrameLoader, tol: float = 2.5, p: float = 1.2) -> None:
+    def __init__(self, loader: FrameLoader, tol: float = 2.5, rho: float = 0.5) -> None:
         self.loader = loader
         self.tol = tol
         self.imsize = self.loader.probe()
 
         self.mean = np.zeros(self.imsize[:2])
         self.variance = np.zeros(self.imsize[:2])
-        self.p = p
+        self.rho = rho
 
     def __str__(self):
         return f"Still Background estimator with {len(self.loader)} images"
@@ -108,8 +108,8 @@ class AdaptativeEstimatorGrayscale:
 
         # FIXME: maybe not the fastest way
         # calculate new mean and variance for all pixels
-        new_mean = self.p * img + (1 - self.p) * self.mean
-        new_variance = math.sqrt(self.p * (img - self.mean) ** 2 + (1 - self.p) * self.variance ** 2)
+        new_mean = self.rho * img + (1 - self.rho) * self.mean
+        new_variance = math.sqrt(self.rho * (img - self.mean) ** 2 + (1 - self.rho) * self.variance ** 2)
 
         # replace only if it is background
         self.mean = np.where(mask < 255, new_mean, self.mean)
@@ -127,8 +127,8 @@ class AdaptativeEstimatorGrayscale:
     def set_tol(self, tol: float) -> None:
         self.tol = tol
 
-    def set_p(self, p: float) -> None:
-        self.p = p
+    def set_rho(self, rho: float) -> None:
+        self.rho = rho
 
     def load_estimator(self, in_path: Path) -> None:
         npz_arr = np.load(str(in_path))

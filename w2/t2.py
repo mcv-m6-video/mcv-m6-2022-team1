@@ -3,6 +3,7 @@
 import cv2
 import json
 
+import numpy as np
 from tqdm.auto import tqdm
 from data import FrameLoader
 from pathlib import Path
@@ -84,13 +85,13 @@ print("Testing...")
 
 # TODO grid search??
 tol_values = [0.5 * x for x in range(1, 11)]
-p_values = [0.5 * x for x in range(1, 11)]
+rho_values = list(np.linspace(0.0, 1.0, num=len(tol_values)))
 prediction = [[] for _ in range(len(tol_values))]
 
 for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
-    for jj, (tol, p) in enumerate(zip(tol_values, p_values)):
+    for jj, (tol, rho) in enumerate(zip(tol_values, rho_values)):
         estimator.set_tol(tol)
-        estimator.set_p(p)
+        estimator.set_rho(rho)
         mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
 
         # A median filter + closing of size n works well enough. We need a heuristic
