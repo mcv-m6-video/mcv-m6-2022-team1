@@ -118,7 +118,7 @@ for color in colors:
     coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
 
     for jj, tol in enumerate(tol_values):
-        with open(out_path / f"prediction_{jj}.json", 'w') as f_pred:
+        with open(out_path / f"prediction_{color}_3_{jj}.json", 'w') as f_pred:
             json.dump(prediction[jj], f_pred)
 
     for jj, tol in enumerate(tol_values):
@@ -183,7 +183,7 @@ for color in colors[1:]:
     coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
 
     for jj, tol in enumerate(tol_values):
-        with open(out_path / f"prediction_{jj}.json", 'w') as f_pred:
+        with open(out_path / f"prediction_{color}_2_{jj}.json", 'w') as f_pred:
             json.dump(prediction[jj], f_pred)
 
     for jj, tol in enumerate(tol_values):
