@@ -29,7 +29,7 @@ class StillBackgroundEstimatorGrayscale:
             (self.imsize[0] * self.imsize[1], len(self.loader)),
             dtype=float
         )
-        for ii, img in tqdm(enumerate(self.loader), desc="Fit progress"):
+        for ii, (img_id, img) in tqdm(enumerate(self.loader), desc="Fit progress"):
             img = np.array(img)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
             img = img.astype(float).flatten()
@@ -73,6 +73,91 @@ class StillBackgroundEstimatorGrayscale:
         plt.close()
 
 
+class StillBackgroundEstimatorMultiCh:
+    def __init__(self, loader: FrameLoader, tol: float = 2.5, ch: int = 3) -> None:
+        self.loader = loader
+        self.tol = tol
+        self.imsize = self.loader.probe()
+
+        self.mean = np.zeros((self.imsize[0],self.imsize[1],ch))
+        self.variance = np.zeros((self.imsize[0],self.imsize[1],ch))
+        self.ch = ch
+        
+        if ch == 2:
+            if loader.color == 'CIE':
+                self.startCh = 1
+                self.endCh = 3
+            elif loader.color == 'YUV':
+                self.startCh = 1
+                self.endCh = 3
+            elif loader.color == 'HSV':
+                self.startCh = 0
+                self.endCh = 2
+        else:
+            self.startCh = 0
+            self.endCh = 3
+            
+
+    def __str__(self):
+        return f"Still Background estimator with {len(self.loader)} images"
+
+    def fit(self) -> None:
+        all_img = np.empty(
+            (self.imsize[0], self.imsize[1], self.ch, len(self.loader)),
+            dtype=float
+        )
+        for ii, (img_id, img) in tqdm(enumerate(self.loader), desc="Fit progress"):
+            img = np.array(img)
+            # img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            # img = img.astype(float).flatten()
+            all_img[:,:,:, ii] = img[:,:,self.startCh:self.endCh]
+
+        # self.mean = all_img.mean(axis=-1).reshape((self.imsize[0], self.imsize[1]))
+        # self.variance = all_img.var(axis=-1).reshape((self.imsize[0], self.imsize[1]))
+        self.mean = all_img.mean(axis=3)
+        self.variance = all_img.var(axis=3)
+
+    def predict(self, img: np.ndarray):
+        img = img.astype(float)
+        maskCh = np.abs(img - self.mean) > (self.tol * (np.sqrt(self.variance) + 2))
+        mask = np.ones((self.imsize[0],self.imsize[1]))
+        # mask = np.zeros((self.imsize[0],self.imsize[1]))
+        
+        for i in range(self.ch):
+           mask *= maskCh[:,:,i]
+           # mask += maskCh[:,:,i]
+            
+        return mask
+
+    def save_estimator(self, out_path: Path) -> None:
+        np.savez(
+            str(out_path),
+            mean=self.mean,
+            variance=self.variance
+        )
+
+    def set_tol(self, tol: float) -> None:
+        self.tol = tol
+
+    def load_estimator(self, in_path: Path) -> None:
+        npz_arr = np.load(str(in_path))
+        self.mean = npz_arr["mean"]
+        self.variance = npz_arr["variance"]
+
+    def viz_estimator(self):
+        ax = plt.subplot()
+        plt.title("Background Estimator Standard Deviation")
+        im = ax.imshow(np.sqrt(self.variance), cmap="hot", interpolation="nearest")
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+
+        plt.colorbar(im, cax=cax)
+        plt.figure(dpi=150)
+
+        plt.show()
+        plt.close()
+        
+        
 class AdaptativeEstimatorGrayscale:
     def __init__(self, loader: FrameLoader, tol: float = 2.5, rho: float = 0.5) -> None:
         self.loader = loader

@@ -27,7 +27,8 @@ class FrameLoader:
             self,
             frame_path: Path,
             perc: float,
-            half: str
+            half: str,
+            color: str = 'RGB'
     ) -> None:
         self.frame_path = frame_path
         self.images = [x.parts[-1] for x in frame_path.glob("*.jpg")]
@@ -39,10 +40,21 @@ class FrameLoader:
             self.images = self.images[:nimgs]
         else:
             self.images = self.images[nimgs:]
+            
+        if color == 'RGB':
+            self.CONVERSION = cv2.COLOR_BGR2RGB
+        elif color == 'CIE':
+            self.CONVERSION = cv2.COLOR_BGR2LAB
+        elif color == 'YUV':
+            self.CONVERSION = cv2.COLOR_BGR2YCrCb
+        elif color == 'HSV':
+            self.CONVERSION = cv2.COLOR_BGR2HSV    
+            
+        self.color = color
 
     def __getitem__(self, item) -> Tuple[int, np.ndarray]:
         img = cv2.imread(str(self.frame_path / self.images[item]))
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(img, self.CONVERSION)
 
         img_id = int(self.images[item].split(".")[0])
 
