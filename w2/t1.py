@@ -47,7 +47,21 @@ elif who == 'dani':
         "E:/Master/M6 - Video analysis/Project/"
         "AICity_data/train/S03/c010/gt_coco"
     )
-    
+else:
+    frame_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/S03/c010/vdo_frames"
+    )
+    estimator_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/S03/c010/estimators"
+    )
+    out_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/"
+        "S03/c010/w2predictions"
+    )
+    gt_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/"
+        "S03/c010/gt_coco"
+    )
 print(estimator_path.is_dir())
 train_loader = FrameLoader(frame_path, .25, "lower")
 test_loader = FrameLoader(frame_path, .25, "upper")
