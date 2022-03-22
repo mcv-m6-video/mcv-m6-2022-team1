@@ -112,11 +112,12 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
     # show_image(mask)
     # show_image(img)
 
-coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
-
 for jj, tol in enumerate(tol_values):
     with open(out_path / f"prediction_{jj}_adaptative.json", 'w') as f_pred:
         json.dump(prediction[jj], f_pred)
+
+coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
+
 
 for jj, tol in enumerate(tol_values):
     cocodt = coco.loadRes(prediction[jj])
