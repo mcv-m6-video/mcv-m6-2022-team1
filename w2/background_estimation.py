@@ -1,12 +1,11 @@
-import math
+from pathlib import Path
+from typing import List, Tuple
 
 import cv2
-import numpy as np
-from typing import List, Tuple, Dict
-from pathlib import Path
-from tqdm.auto import tqdm
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+from tqdm.auto import tqdm
 
 from data import FrameLoader
 
@@ -104,16 +103,14 @@ class AdaptativeEstimatorGrayscale:
         img = img.astype(float)
         mask = np.abs(img - self.mean) > (self.tol * (np.sqrt(self.variance) + 2))
 
-        print(f"mask before {mask}")
-
         # FIXME: maybe not the fastest way
         # calculate new mean and variance for all pixels
         new_mean = self.rho * img + (1 - self.rho) * self.mean
-        new_variance = math.sqrt(self.rho * (img - self.mean) ** 2 + (1 - self.rho) * self.variance ** 2)
+        new_variance = np.sqrt(self.rho * (img - self.mean) ** 2 + (1 - self.rho) * self.variance ** 2)
 
         # replace only if it is background
-        self.mean = np.where(mask < 255, new_mean, self.mean)
-        self.variance = np.where(mask < 255, new_variance, self.variance)
+        self.mean = np.where(mask is False, new_mean, self.mean)
+        self.variance = np.where(mask is False, new_variance, self.variance)
 
         return mask
 

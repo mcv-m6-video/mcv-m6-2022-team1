@@ -11,7 +11,7 @@ from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-who = 'dani'
+who = 'Yola Berrocal'
 
 if who == 'pau':
     frame_path = Path(
@@ -102,9 +102,9 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
             "score": 1.0
         } for x in bboxes]
 
-    # draw_bboxes(img, bboxes)
-    # show_image(mask)
-    # show_image(img)
+    draw_bboxes(img, bboxes)
+    show_image(mask)
+    show_image(img)
 
 coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
 

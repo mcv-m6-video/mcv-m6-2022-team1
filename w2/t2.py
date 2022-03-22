@@ -1,4 +1,5 @@
 # ffmpeg -i ../vdo.avi %05d.jpg
+print("ADAPTATIVE MODEL")
 
 import cv2
 import json
@@ -7,7 +8,8 @@ import numpy as np
 from tqdm.auto import tqdm
 from data import FrameLoader
 from pathlib import Path
-from background_estimation import StillBackgroundEstimatorGrayscale, AdaptativeEstimatorGrayscale, cleanup_mask, get_bboxes
+from background_estimation import StillBackgroundEstimatorGrayscale, AdaptativeEstimatorGrayscale, cleanup_mask, \
+    get_bboxes
 
 from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
@@ -70,12 +72,11 @@ test_loader = FrameLoader(frame_path, .25, "upper")
 
 estimator = AdaptativeEstimatorGrayscale(train_loader)
 
-estimator.fit()
+# estimator.fit()
 # For the sake of speed (and since we decided it was a good idea to fit the
 # entire training sequence on memory to generate statistics), we have enabled
 # a way to reload the estimated backgrounds.
-estimator.save_estimator(estimator_path / "estimator_adaptative.npz")
-estimator.load_estimator(estimator_path / "estimator_adaptative.npz")
+estimator.load_estimator(estimator_path / "estimator.npz")
 
 # interestingly enough, areas with high color happen to have higher std. This is
 # probably as a result of images not being 0-centered.
@@ -107,9 +108,9 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
             "score": 1.0
         } for x in bboxes]
 
-    draw_bboxes(img, bboxes)
-    show_image(mask)
-    show_image(img)
+    # draw_bboxes(img, bboxes)
+    # show_image(mask)
+    # show_image(img)
 
 coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
 
