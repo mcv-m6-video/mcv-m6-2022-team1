@@ -66,7 +66,7 @@ else:
     )
 
 train_loader = FrameLoader(frame_path, .25, "lower")
-test_loader = FrameLoader(frame_path, .75, "upper")
+test_loader = FrameLoader(frame_path, .25, "upper")
 
 estimator = AdaptativeEstimatorGrayscale(train_loader)
 
