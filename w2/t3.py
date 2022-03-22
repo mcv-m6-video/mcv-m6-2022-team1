@@ -11,7 +11,7 @@ from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-who = 'Yola Berrocal'
+who = 'pau'
 
 if who == 'pau':
     frame_path = Path(
@@ -24,7 +24,7 @@ if who == 'pau':
     )
     out_path = Path(
         "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
-        "S03/c010/w2predictions"
+        "S03/c010/w2predictions_t3"
     )
     gt_path = Path(
         "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
@@ -66,8 +66,8 @@ else:
 
 # bg_subtractor = cv2.BackgroundSubtractorMOG2(detectShadows=True)
 # bg_subtractor = cv2.createBackgroundSubtractorKNN(detectShadows=True)
-bg_subtractors = [cv2.BackgroundSubtractorMOG2(detectShadows=True), cv2.BackgroundSubtractorKNN(detectShadows=True),
-                  cv2.bgsegm.BackgroundSubtractorLSBP(), cv2.bgsegm.BackgroundSubtractorMOG()]
+bg_subtractors = [cv2.createBackgroundSubtractorMOG2(detectShadows=True), cv2.createBackgroundSubtractorKNN(detectShadows=True),
+                  cv2.bgsegm.createBackgroundSubtractorLSBP(), cv2.bgsegm.createBackgroundSubtractorMOG()]
 # cv2.bgsegm.BackgroundSubtractorCNT, cv2.bgsegm.BackgroundSubtractorGMG, cv2.bgsegm.BackgroundSubtractorGSOC
 
 test_loader = FrameLoader(frame_path, .25, "upper")
@@ -96,7 +96,7 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
         # show_image(mask)
         # show_image(img)
 
-coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
+coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
 
 for jj, bg_subtractor in enumerate(bg_subtractors):
     with open(out_path / f"prediction_SOTA_{jj}.json", 'w') as f_pred:
