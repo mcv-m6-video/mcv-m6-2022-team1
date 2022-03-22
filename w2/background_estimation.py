@@ -292,8 +292,8 @@ class AdaptativeEstimatorMultiCh:
         new_variance = self.rho * (img - self.mean) ** 2 + (1 - self.rho) * self.variance
         
         # replace only if it is background
-        self.mean = np.where(np.swapaxes(np.swapaxes(np.tile(mask,(3,1,1)),0,1),1,2) == 0, new_mean, self.mean)
-        self.variance = np.where(np.swapaxes(np.swapaxes(np.tile(mask,(3,1,1)),0,1),1,2) == 0, new_variance, self.variance)
+        self.mean = np.where(np.swapaxes(np.swapaxes(np.tile(mask,(self.ch,1,1)),0,1),1,2) == 0, new_mean, self.mean)
+        self.variance = np.where(np.swapaxes(np.swapaxes(np.tile(mask,(self.ch,1,1)),0,1),1,2) == 0, new_variance, self.variance)
         
         return mask
 
