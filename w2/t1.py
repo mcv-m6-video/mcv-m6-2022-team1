@@ -62,6 +62,7 @@ else:
         "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/"
         "S03/c010/gt_coco"
     )
+
 print(estimator_path.is_dir())
 train_loader = FrameLoader(frame_path, .25, "lower")
 test_loader = FrameLoader(frame_path, .25, "upper")
