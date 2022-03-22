@@ -57,3 +57,4 @@ subtraction algorithms.
 - [Review on Mixture of Gaussians Foreground Detection (2008)](https://hal.archives-ouvertes.fr/hal-00338206/document)
 - [Understanding Gaussian Mixture Models for Foreground Segmentation (2002)](https://www.cse.psu.edu/~rtc12/CSE586Spring2010/papers/emBGsubtractAboutSandG.pdf)
 - [Tutorial on OpenCV](https://docs.opencv.org/4.x/d1/dc5/tutorial_background_subtraction.html)
+
