@@ -51,6 +51,9 @@ class StillBackgroundEstimatorGrayscale:
             variance=self.variance
         )
 
+    def set_tol(self, tol: float) -> None:
+        self.tol = tol
+
     def load_estimator(self, in_path: Path) -> None:
         npz_arr = np.load(str(in_path))
         self.mean = npz_arr["mean"]
@@ -95,7 +98,7 @@ def get_bboxes(mask: np.ndarray, lowbound: int) -> List[Bbox]:
 
         if width * height >= lowbound:
             bboxes.append((
-                minx, miny, width, height
+                int(minx), int(miny), int(width), int(height)
             ))
 
     return bboxes
