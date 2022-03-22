@@ -1,11 +1,15 @@
+# ffmpeg -i ../vdo.avi %05d.jpg
+print("ADAPTATIVE MODEL")
+
 import cv2
 import json
 
+import numpy as np
 from tqdm.auto import tqdm
 from data import FrameLoader
 from pathlib import Path
-from background_estimation import StillBackgroundEstimatorGrayscale, \
-    cleanup_mask, get_bboxes
+from background_estimation import StillBackgroundEstimatorGrayscale, AdaptativeEstimatorGrayscale, cleanup_mask, \
+    get_bboxes
 
 from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
@@ -66,7 +70,7 @@ else:
 train_loader = FrameLoader(frame_path, .25, "lower")
 test_loader = FrameLoader(frame_path, .25, "upper")
 
-estimator = StillBackgroundEstimatorGrayscale(train_loader)
+estimator = AdaptativeEstimatorGrayscale(train_loader)
 
 # estimator.fit()
 # For the sake of speed (and since we decided it was a good idea to fit the
@@ -80,12 +84,15 @@ estimator.viz_estimator()
 
 print("Testing...")
 
+# TODO grid search??
 tol_values = [0.5 * x for x in range(1, 11)]
+rho_values = list(np.linspace(0.0, 1.0, num=len(tol_values)))
 prediction = [[] for _ in range(len(tol_values))]
 
 for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
-    for jj, tol in enumerate(tol_values):
+    for jj, (tol, rho) in enumerate(zip(tol_values, rho_values)):
         estimator.set_tol(tol)
+        estimator.set_rho(rho)
         mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
 
         # A median filter + closing of size n works well enough. We need a heuristic
@@ -101,14 +108,14 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
             "score": 1.0
         } for x in bboxes]
 
-    draw_bboxes(img, bboxes)
-    show_image(mask)
-    show_image(img)
+    # draw_bboxes(img, bboxes)
+    # show_image(mask)
+    # show_image(img)
 
-coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
+coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
 
 for jj, tol in enumerate(tol_values):
-    with open(out_path / f"prediction_{jj}.json", 'w') as f_pred:
+    with open(out_path / f"prediction_{jj}_adaptative.json", 'w') as f_pred:
         json.dump(prediction[jj], f_pred)
 
 for jj, tol in enumerate(tol_values):

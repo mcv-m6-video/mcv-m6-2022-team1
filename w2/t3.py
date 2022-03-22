@@ -11,7 +11,7 @@ from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-who = 'dani'
+who = 'Yola Berrocal'
 
 if who == 'pau':
     frame_path = Path(
@@ -46,6 +46,21 @@ elif who == 'dani':
     gt_path = Path(
         "E:/Master/M6 - Video analysis/Project/"
         "AICity_data/train/S03/c010/gt_coco"
+    )
+else:
+    frame_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/S03/c010/vdo_frames"
+    )
+    estimator_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/S03/c010/estimators"
+    )
+    out_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/"
+        "S03/c010/w2predictions"
+    )
+    gt_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/"
+        "S03/c010/gt_coco"
     )
     
 

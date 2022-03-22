@@ -25,26 +25,38 @@ gt_path = Path(
     "S03/c010/gt_coco"
 )
 
+pred_path = Path(
+    "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
+    "S03/c010/w2predictions"
+)
+
 with open(gt_path / "gt_moving_onelabel.json", 'r') as f_json:
     gt_file = json.load(f_json)
 
+with open(pred_path / "prediction_8.json", 'r') as f_json:
+    pd_file = json.load(f_json)
 
-chosen_img = 1617
-gt_bbox = [x["bbox"] for x in gt_file["annotations"] if x["image_id"] == chosen_img]
+# chosen_img = 1617
+# gt_bbox = [x["bbox"] for x in gt_file["annotations"] if x["image_id"] == chosen_img]
 
-train_loader = FrameLoader(frame_path, 3.5, "lower")
+train_loader = FrameLoader(frame_path, 1.0, "lower")
 
-estimator = StillBackgroundEstimatorGrayscale(train_loader, 5.0)
-estimator.load_estimator(estimator_path / "estimator.npz")
-estimator.viz_estimator()
+# estimator = StillBackgroundEstimatorGrayscale(train_loader, 5.0)
+# estimator.load_estimator(estimator_path / "estimator.npz")
+# estimator.viz_estimator()
+#
+# img_id, img = train_loader[chosen_img]
+# mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
+#
+# show_image(mask)
+# mask = cleanup_mask(mask, 11)
+# show_image(mask)
+# bboxes = get_bboxes(mask, 50)
+#
+# draw_bboxes(img, bboxes, gt_bbox)
 
-img_id, img = train_loader[chosen_img]
-mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
+for id, img in train_loader:
+    gt_bbox = [x["bbox"] for x in gt_file["annotations"] if x["image_id"] == id]
+    pd_bbox = [x["bbox"] for x in pd_file if x["image_id"] == id]
 
-show_image(mask)
-mask = cleanup_mask(mask, 11)
-show_image(mask)
-bboxes = get_bboxes(mask, 50)
-
-draw_bboxes(img, bboxes, gt_bbox)
-
+    draw_bboxes(img, pd_bbox, gt_bbox, str(out_path / f"{id:05}.jpg"))
