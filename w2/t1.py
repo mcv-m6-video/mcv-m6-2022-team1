@@ -48,7 +48,7 @@ print("Testing...")
 tol_values = [0.5 * x for x in range(1, 11)]
 prediction = [[] for _ in range(len(tol_values))]
 
-for ii, (img_id, img) in tqdm(enumerate(test_loader)):
+for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
     for jj, tol in enumerate(tol_values):
         estimator.set_tol(tol)
         mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
@@ -76,10 +76,10 @@ for jj, tol in enumerate(tol_values):
     with open(out_path / f"prediction_{jj}.json", 'w') as f_pred:
         json.dump(prediction[jj], f_pred)
 
+for jj, tol in enumerate(tol_values):
     cocodt = coco.loadRes(prediction[jj])
     cocoeval = COCOeval(coco, cocodt, 'bbox')
 
     cocoeval.evaluate()
     cocoeval.accumulate()
     cocoeval.summarize()
-    pass
