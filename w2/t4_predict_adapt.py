@@ -1,17 +1,21 @@
+# ffmpeg -i ../vdo.avi %05d.jpg
+print("ADAPTATIVE MODEL")
+
 import cv2
 import json
 
+import numpy as np
 from tqdm.auto import tqdm
 from data import FrameLoader
 from pathlib import Path
-from background_estimation import StillBackgroundEstimatorGrayscale, StillBackgroundEstimatorMultiCh, \
-    cleanup_mask, get_bboxes
+from background_estimation import StillBackgroundEstimatorGrayscale, AdaptativeEstimatorGrayscale, AdaptativeEstimatorMultiCh, cleanup_mask, \
+    get_bboxes
 
 from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-who = 'dani'
+who = 'Yola Berrocal'
 
 if who == 'pau':
     frame_path = Path(
@@ -63,13 +67,14 @@ else:
         "S03/c010/gt_coco"
     )
 
+
 colors = ['RGB','CIE','YUV','HSV']
 
 for color in colors:
     train_loader = FrameLoader(frame_path, .25, "lower",color)
     test_loader = FrameLoader(frame_path, .25, "upper",color)
 
-    estimator = StillBackgroundEstimatorMultiCh(train_loader)
+    estimator = AdaptativeEstimatorMultiCh(train_loader)
     # estimator.fit()
     # estimator.save_estimator(estimator_path / f"estimator_{color}_3.npz")
     
@@ -82,6 +87,7 @@ for color in colors:
     print("Testing...")
 
     tol_values = [0.5 * x for x in range(1, 11)]
+    rho_values = list(np.linspace(0.0, 1.0, num=len(tol_values)))
     prediction = [[] for _ in range(len(tol_values))]
 
     if color == 'RGB':
@@ -94,8 +100,9 @@ for color in colors:
         CONVERSION = cv2.COLOR_BGR2HSV    
         
     for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
-        for jj, tol in enumerate(tol_values):
+        for jj, (tol, rho) in enumerate(zip(tol_values, rho_values)):
             estimator.set_tol(tol)
+            estimator.set_rho(rho)
             mask = estimator.predict(cv2.cvtColor(img, CONVERSION))
 
             # A median filter + closing of size n works well enough. We need a heuristic
@@ -111,14 +118,11 @@ for color in colors:
                 "score": 1.0
             } for x in bboxes]
 
-        # draw_bboxes(img, bboxes)
-        # show_image(mask)
-        # show_image(img)
 
     coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
 
     for jj, tol in enumerate(tol_values):
-        with open(out_path / f"prediction_{color}_3_{jj}.json", 'w') as f_pred:
+        with open(out_path / f"prediction_{color}_3_{jj}_adapt.json", 'w') as f_pred:
             json.dump(prediction[jj], f_pred)
 
     for jj, tol in enumerate(tol_values):
@@ -129,12 +133,11 @@ for color in colors:
         cocoeval.accumulate()
         cocoeval.summarize()
 
-    
 for color in colors[1:]:
     train_loader = FrameLoader(frame_path, .25, "lower",color)
     test_loader = FrameLoader(frame_path, .25, "upper",color)
 
-    estimator = StillBackgroundEstimatorMultiCh(train_loader,ch=2)
+    estimator = AdaptativeEstimatorMultiCh(train_loader,ch=2)
     # estimator.fit()
     # estimator.save_estimator(estimator_path / f"estimator_{color}_2.npz")
     
@@ -147,6 +150,7 @@ for color in colors[1:]:
     print("Testing...")
 
     tol_values = [0.5 * x for x in range(1, 11)]
+    rho_values = list(np.linspace(0.0, 1.0, num=len(tol_values)))
     prediction = [[] for _ in range(len(tol_values))]
 
     if color == 'RGB':
@@ -159,8 +163,9 @@ for color in colors[1:]:
         CONVERSION = cv2.COLOR_BGR2HSV  
         
     for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
-        for jj, tol in enumerate(tol_values):
+        for jj, (tol, rho) in enumerate(zip(tol_values, rho_values)):
             estimator.set_tol(tol)
+            estimator.set_rho(rho)
             mask = estimator.predict(cv2.cvtColor(img, CONVERSION))
 
             # A median filter + closing of size n works well enough. We need a heuristic
@@ -183,7 +188,7 @@ for color in colors[1:]:
     coco = COCO(str(gt_path / "gt_moving_onelabel_test.json"))
 
     for jj, tol in enumerate(tol_values):
-        with open(out_path / f"prediction_{color}_2_{jj}.json", 'w') as f_pred:
+        with open(out_path / f"prediction_{color}_2_{jj}_adapt.json", 'w') as f_pred:
             json.dump(prediction[jj], f_pred)
 
     for jj, tol in enumerate(tol_values):
