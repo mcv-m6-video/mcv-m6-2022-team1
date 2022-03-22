@@ -30,6 +30,7 @@ class StillBackgroundEstimatorGrayscale:
             dtype=float
         )
         for ii, img in tqdm(enumerate(self.loader), desc="Fit progress"):
+            img = np.array(img)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
             img = img.astype(float).flatten()
             all_img[:, ii] = img
