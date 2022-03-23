@@ -107,3 +107,6 @@ Below, the method comparison and the results we obtained.
 The task is implemented in [```t4.py```](./t4.py). Selected results are in
 [this folder](./data/t4predicts), since they are considerably large JSON files
 and we deemed it unnecessary to upload them all here.
+
+We accidentally modified the state of adaptive models in unintentional fashion
+during training, which forced us to scrap those results in the final slides.

@@ -15,7 +15,7 @@ from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-who = 'Yola Berrocal'
+who = 'pau'
 
 if who == 'pau':
     frame_path = Path(
@@ -28,7 +28,7 @@ if who == 'pau':
     )
     out_path = Path(
         "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
-        "S03/c010/w2predictions"
+        "S03/c010/w2predictions_t2"
     )
     gt_path = Path(
         "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
@@ -70,28 +70,32 @@ else:
 train_loader = FrameLoader(frame_path, .25, "lower")
 test_loader = FrameLoader(frame_path, .25, "upper")
 
-estimator = AdaptativeEstimatorGrayscale(train_loader)
 
 # estimator.fit()
 # For the sake of speed (and since we decided it was a good idea to fit the
 # entire training sequence on memory to generate statistics), we have enabled
 # a way to reload the estimated backgrounds.
-estimator.load_estimator(estimator_path / "estimator.npz")
+
 
 # interestingly enough, areas with high color happen to have higher std. This is
 # probably as a result of images not being 0-centered.
-estimator.viz_estimator()
 
 print("Testing...")
 
 # TODO grid search??
-tol_values = [0.5 * x for x in range(1, 11)]
-rho_values = list(np.linspace(0.0, 1.0, num=len(tol_values)))
-prediction = [[] for _ in range(len(tol_values))]
+tol_value = 3.0
+rho_values = [0.01, 0.1, 1.0]
+prediction = [[] for _ in range(len(rho_values))]
 
-for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
-    for jj, (tol, rho) in enumerate(zip(tol_values, rho_values)):
-        estimator.set_tol(tol)
+for jj, rho in enumerate(rho_values):
+    estimator = AdaptativeEstimatorGrayscale(train_loader)
+    estimator.load_estimator(estimator_path / "estimator.npz")
+
+    estimator.viz_estimator()
+
+    for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
+
+        estimator.set_tol(tol_value)
         estimator.set_rho(rho)
         mask = estimator.predict(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY))
 
@@ -112,14 +116,14 @@ for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."
     # show_image(mask)
     # show_image(img)
 
-for jj, tol in enumerate(tol_values):
+for jj, tol in enumerate(rho_values):
     with open(out_path / f"prediction_{jj}_adaptative.json", 'w') as f_pred:
         json.dump(prediction[jj], f_pred)
 
 coco = COCO(str(gt_path / "gt_moving_onelabel.json"))
 
 
-for jj, tol in enumerate(tol_values):
+for jj, tol in enumerate(rho_values):
     cocodt = coco.loadRes(prediction[jj])
     cocoeval = COCOeval(coco, cocodt, 'bbox')
 

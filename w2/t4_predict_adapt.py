@@ -15,7 +15,7 @@ from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-who = 'Yola Berrocal'
+who = 'pau'
 
 if who == 'pau':
     frame_path = Path(
@@ -28,7 +28,7 @@ if who == 'pau':
     )
     out_path = Path(
         "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
-        "S03/c010/w2predictions"
+        "S03/c010/w2predictions_t4"
     )
     gt_path = Path(
         "/home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/"
@@ -98,7 +98,8 @@ for color in colors:
         CONVERSION = cv2.COLOR_BGR2YCrCb
     elif color == 'HSV':
         CONVERSION = cv2.COLOR_BGR2HSV    
-        
+
+    # FIXME: By having the loop this way we alter the state -- results are not what we think they are!
     for ii, (img_id, img) in tqdm(enumerate(test_loader), desc="Testing progress..."):
         for jj, (tol, rho) in enumerate(zip(tol_values, rho_values)):
             estimator.set_tol(tol)
