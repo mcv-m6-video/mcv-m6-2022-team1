@@ -1,10 +1,30 @@
 # Week 2: Background estimation
 
+## Running the code
+
+Each task script has 4 different hardcoded paths
+
+- ```frame_path```: Where to find the input video divided by frames. We
+extracted them using ```ffmpeg```.
+- ```estimator_path```: Where to save/load a pre-trained estimator. Since we
+do not provide a loaded estimator on the git (being an uncompressed numpy file
+it is much larger than we can fit) we recommend fitting a new model from scratch
+instead.
+- ```out_path```: Where to store produced predictions (in JSON format). Those
+scripts that also produce images will output here as well.
+- ```gt_path```: Path where the COCO-format ground truth files may be found.
+
+Note that we regularly modified the scripts to account for each one of the 
+members' paths and also to adjust for some tasks (```eval.py``` can be used for
+any output, hence we altered it accordingly each time we wanted to evaluate
+something different from the one present in the repo).
+
 ## Task overview
 
 ### Task 1: Gaussian modelling for background estimation
 
-The task is implemented in [```t1.py```](./t1.py).
+The task is implemented in [```t1.py```](./t1.py). Results are in
+[this folder](./data/t1predicts).
 
 This task consists on the implementation of a simple single-gaussian background
 estimation model. In our code, this is written in the script file
@@ -48,11 +68,20 @@ video sequence (S03 - c010) from the AI Cities dataset.
 
 ### Task 2: Adaptive Models
 
-todo
+The task is implemented in [```t2.py```](./t2.py). Results are in
+[this folder](./data/t2predicts).
+
+For adaptive models we use the same API as in task1, with the added caveat that
+running predict **alters their state** (this may or may not have been a problem
+somewhere in the development).
+
 
 ---
 
 ### Task 3: State-of-the-art models
+
+The task is implemented in [```t3.py```](./t3.py). Results are in
+[this folder](./data/t3predicts).
 
 We found several resources from which to acquire interesting background
 subtraction algorithms.
@@ -75,4 +104,6 @@ Below, the method comparison and the results we obtained.
 
 ### Task 4: Color-based Models
 
-todo
+The task is implemented in [```t4.py```](./t4.py). Selected results are in
+[this folder](./data/t4predicts), since they are considerably large JSON files
+and we deemed it unnecessary to upload them all here.
