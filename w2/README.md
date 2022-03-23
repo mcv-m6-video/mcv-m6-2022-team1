@@ -19,6 +19,36 @@ members' paths and also to adjust for some tasks (```eval.py``` can be used for
 any output, hence we altered it accordingly each time we wanted to evaluate
 something different from the one present in the repo).
 
+For video output there is a considerable amount of manual work. We basically
+output separate frames and build the videos using ffmpeg like
+
+```python
+# Running this script for stitching a video in mp4 format
+import cv2
+import glob
+
+img_array = []
+file_array = [x for x in glob.glob(r'*.jpg')]
+file_array.sort()
+for filename in file_array:
+    img = cv2.imread(filename)
+    height, width, layers = img.shape
+    size = (width,height)
+    img_array.append(img)
+ 
+out = cv2.VideoWriter('video.mp4',cv2.VideoWriter_fourcc(*'mp4v'), 20, size)
+ 
+for i in range(len(img_array)):
+    out.write(img_array[i])
+out.release()
+```
+
+```bash
+# To convert to GIF
+ffmpeg -i <input>.mp4 -vf "fps=20,scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" \
+  -loop 1 <output>.gif
+```
+
 ## Task overview
 
 ### Task 1: Gaussian modelling for background estimation
