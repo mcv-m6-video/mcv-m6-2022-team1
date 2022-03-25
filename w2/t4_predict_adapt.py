@@ -15,7 +15,7 @@ from viz import show_image, draw_bboxes
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
-who = 'Yola Berrocal'
+who = 'dani'
 
 if who == 'pau':
     frame_path = Path(
