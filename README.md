@@ -8,7 +8,8 @@
 
 ## Overview
 
-Each week's assignments are written in a separate folder.
+Each week's assignments are written in a separate folder. Please check each
+week's readme for detail.
 
 - [**Week 1**](./w1)
 - [**Week 2**](./w2)

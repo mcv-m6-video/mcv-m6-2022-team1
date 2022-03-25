@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+/w2/plots/t22_video/*/*.jpg
+/w2/plots/t22_video/*/*/*.jpg
+/w2/plots/t22_video/*/*.mp4
+/w2/plots/t22_video/*/*/*.mp4
+/w2/plots/t22_video/*/*/*.py

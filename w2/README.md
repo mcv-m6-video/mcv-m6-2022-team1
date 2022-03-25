@@ -1,10 +1,60 @@
 # Week 2: Background estimation
 
+## Running the code
+
+Each task script has 4 different hardcoded paths
+
+- ```frame_path```: Where to find the input video divided by frames. We
+extracted them using ```ffmpeg```.
+- ```estimator_path```: Where to save/load a pre-trained estimator. Since we
+do not provide a loaded estimator on the git (being an uncompressed numpy file
+it is much larger than we can fit) we recommend fitting a new model from scratch
+instead.
+- ```out_path```: Where to store produced predictions (in JSON format). Those
+scripts that also produce images will output here as well.
+- ```gt_path```: Path where the COCO-format ground truth files may be found.
+
+Note that we regularly modified the scripts to account for each one of the 
+members' paths and also to adjust for some tasks (```eval.py``` can be used for
+any output, hence we altered it accordingly each time we wanted to evaluate
+something different from the one present in the repo).
+
+For video output there is a considerable amount of manual work. We basically
+output separate frames and build the videos using ffmpeg like
+
+```python
+# Running this script for stitching a video in mp4 format
+import cv2
+import glob
+
+img_array = []
+file_array = [x for x in glob.glob(r'*.jpg')]
+file_array.sort()
+for filename in file_array:
+    img = cv2.imread(filename)
+    height, width, layers = img.shape
+    size = (width,height)
+    img_array.append(img)
+ 
+out = cv2.VideoWriter('video.mp4',cv2.VideoWriter_fourcc(*'mp4v'), 20, size)
+ 
+for i in range(len(img_array)):
+    out.write(img_array[i])
+out.release()
+```
+
+```bash
+# To convert to GIF
+ffmpeg -i <input>.mp4 -vf "fps=20,scale=640:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" \
+  -loop 1 <output>.gif
+```
+
 ## Task overview
 
 ### Task 1: Gaussian modelling for background estimation
 
-The task is implemented in [```t1.py```](./t1.py).
+The task is implemented in [```t1.py```](./t1.py). Results are in
+[this folder](./data/t1predicts).
 
 This task consists on the implementation of a simple single-gaussian background
 estimation model. In our code, this is written in the script file
@@ -48,11 +98,20 @@ video sequence (S03 - c010) from the AI Cities dataset.
 
 ### Task 2: Adaptive Models
 
-todo
+The task is implemented in [```t2.py```](./t2.py). Results are in
+[this folder](./data/t2predicts).
+
+For adaptive models we use the same API as in task1, with the added caveat that
+running predict **alters their state** (this may or may not have been a problem
+somewhere in the development).
+
 
 ---
 
 ### Task 3: State-of-the-art models
+
+The task is implemented in [```t3.py```](./t3.py). Results are in
+[this folder](./data/t3predicts).
 
 We found several resources from which to acquire interesting background
 subtraction algorithms.
@@ -75,4 +134,9 @@ Below, the method comparison and the results we obtained.
 
 ### Task 4: Color-based Models
 
-todo
+The task is implemented in [```t4.py```](./t4.py). Selected results are in
+[this folder](./data/t4predicts), since they are considerably large JSON files
+and we deemed it unnecessary to upload them all here.
+
+We accidentally modified the state of adaptive models in unintentional fashion
+during training, which forced us to scrap those results in the final slides.
