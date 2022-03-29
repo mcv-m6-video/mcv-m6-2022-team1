@@ -70,14 +70,20 @@ def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2):
     return tracking_list
 
 
-def iou(gt: list(), pred: list()):
-    gt[2], gt[3] = gt[0] + gt[2], gt[1] + gt[3]
-    pred[2], pred[3] = pred[0] + pred[2], pred[1] + pred[3]
+def iou(gt: list, pred: list):
+    gt_x1, gt_y1, gt_w, gt_h = gt
+    pd_x1, pd_y1, pd_w, pd_h = pred
 
-    xA = max(gt[0], pred[0])
-    yA = max(gt[1], pred[1])
-    xB = min(gt[2], pred[2])
-    yB = min(gt[3], pred[3])
+    gt_x2 = gt_x1 + gt_w
+    pd_x2 = pd_x1 + pd_w
+
+    gt_y2 = gt_y1 + gt_h
+    pd_y2 = pd_y1 + pd_h
+
+    xA = max(gt_x1, pd_x1)
+    yA = max(gt_y1, pd_y1)
+    xB = min(gt_x2, pd_x2)
+    yB = min(gt_y2, pd_y2)
 
     interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
 
@@ -91,6 +97,7 @@ def visualize_overlap(track_list, frame_loader):
     for img_frame_id, img in tqdm(frame_loader):
         img = np.array(img)
         bboxes_to_draw = list()
+
         for track in track_list:
             # if track has stored the frame id, extract bbox and append to draw it
             try:
@@ -98,7 +105,10 @@ def visualize_overlap(track_list, frame_loader):
                 bboxes_to_draw.append(track.bbox[index])
             except ValueError:
                 pass
+        print(f"drawing")
         for x, y, w, h in bboxes_to_draw:
-            cv2.circle(img, (int(x+w/2), int(y+y/2)), 5, (255, 0, 0), -1)
+            print(f"({int(x+(w/2))}, {int(y+(h/2))})")
+            cv2.circle(img, (int(x+(w/2)), int(y+(h/2))), 5, (255, 0, 0), -1)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         cv2.imshow('', img)
         cv2.waitKey(0)
