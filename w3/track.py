@@ -1,5 +1,5 @@
 class Track(object):
-    def __init__(self, id: int, detections: int):
+    def __init__(self, id: int):
         self.id = id  # track id
         self.bbox = list()  # list of bbox associated to an object
         self.frame_id_appearence = list()

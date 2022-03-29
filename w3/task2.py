@@ -27,7 +27,7 @@ def read_detections(json_file: str) -> list():
     return data
 
 
-def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.4):
+def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2):
     # Assumes first frame as initialization
 
     tracking_list = list()  # list of Track objects
@@ -41,7 +41,6 @@ def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.4):
 
         for ii, object_in_frame in enumerate(frame_detections):
             if frame_id == init_frame_id:  # initial frame
-                # TODO: maybe remove num_detect
                 # appends new track
                 new_track = Track(track_id)
                 new_track.append_bbox(object_in_frame["bbox"])
