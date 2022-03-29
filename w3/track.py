@@ -96,19 +96,27 @@ def iou(gt: list, pred: list):
 
 def visualize_overlap(track_list, frame_loader, num_of_colors=200):
     color_list = [tuple(np.random.choice(range(256), size=3)) for ic in range(num_of_colors)]
+    video = cv2.VideoWriter("overlap_viz.avi", 0, 10, (1920, 1080))
 
+    trail_points = list()
+    trail_counter = 0
     for img_frame_id, img in tqdm(frame_loader):
+        if img_frame_id == 836:
+            print("STOP")
+            break
         img = np.array(img)
         bboxes_to_draw = list()
 
         for track in track_list:
-            # if track has stored the frame id, extract bbox and append to draw it
+            # if track has stored the frame id, extract bbox and append to draw itvideo.write(img)
             try:
                 index = track.frame_id_appearence.index(img_frame_id)
                 associated_id = track.id
                 bboxes_to_draw.append((track.bbox[index], associated_id))
+                trail_points.append((track.bbox[index], associated_id))
             except ValueError:
                 pass
+
         for (x, y, w, h), id_track in bboxes_to_draw:
             cv2.circle(img, (int(x + (w / 2)), int(y + (h / 2))), 5, (255, 0, 0), -1)
             cv2.putText(img, f"id: {id_track}", (int(x + (w / 2)), int(y + (h / 2))), cv2.FONT_HERSHEY_TRIPLEX, 1,
@@ -116,8 +124,25 @@ def visualize_overlap(track_list, frame_loader, num_of_colors=200):
                          int(color_list[id_track % num_of_colors][2])), 2, cv2.LINE_AA)
             # cv2.rectangle(img, (int(x), int(y)), (int(x + w), int(y + h)), (255,0,0), 2)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        cv2.imshow('', img)
-        cv2.waitKey(0)
+        video.write(img)
+        # cv2.imshow('', img)
+        # cv2.waitKey(0)
+
+        # for (x, y, w, h), id_track in trail_points:
+        #     cv2.circle(img, (int(x + (w / 2)), int(y + (h / 2))), 5, (255, 0, 0), -1)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # video.write(img)
+        # # cv2.imshow('', img)
+        # # cv2.waitKey(0)
+        #
+        # video.write(img)
+        # if trail_counter%20 == 0:
+        #     trail_counter = 0
+        #     trail_points.clear()
+        # trail_counter += 1
+
+    cv2.destroyAllWindows()
+    video.release()
 
 
 def eval_file(track_list, init_frame_id, last_frame_id, csv_file):
@@ -127,7 +152,8 @@ def eval_file(track_list, init_frame_id, last_frame_id, csv_file):
                 index = track.frame_id_appearence.index(frame_id)
                 id_csv = track.id
                 bbox = track.bbox[index]
-                csv_row = [str(frame_id), str(id_csv), str(bbox[0]), str(bbox[1]), str(bbox[2]), str(bbox[3]), "-1", "-1", "-1", "-1"]
+                csv_row = [str(frame_id), str(id_csv), str(bbox[0]), str(bbox[1]), str(bbox[2]), str(bbox[3]), "-1",
+                           "-1", "-1", "-1"]
                 with open(csv_file, 'a') as fd:
                     writer = csv.writer(fd)
                     writer.writerow(csv_row)

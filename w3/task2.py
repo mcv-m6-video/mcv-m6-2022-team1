@@ -14,7 +14,7 @@ makedirs(out_data, exist_ok=True)
 
 data = read_detections(detections_path)
 
-tracking = track_max_overlap(data, 536, 2141)
+tracking = track_max_overlap(data, 536, 836)
 print(len(tracking))
 np.savez(out_data / "tracking_list.npz", tracking)
 # tracking = np.load(out_data / "tracking_list.npz")
