@@ -11,12 +11,9 @@ for arch in COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml \
             COCO-Detection/faster_rcnn_R_50_C4_3x.yaml \
             COCO-Detection/retinanet_R_50_FPN_1x.yaml
 do
-  for i in 0 1 2 3
-  do
-    echo "${i}-fold w/ arch: ${arch}"
-    python3 train_arch.py /home/group01/gt_coco/kfold_${i} \
-                          /home/group01/vdo_frames \
-                          /home/group01/m6w3/${arch}/fold_${i} \
-                          ${arch}
-  done
+  echo "Holdout w/ arch: ${arch}"
+  python3 off_shelf.py /home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/S03/c010/gt_coco/holdout \
+                       /home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/S03/c010/vdo_frames \
+                       /home/pau/Documents/master/M6/project/data/results/${arch}/holdout \
+                       ${arch}
 done

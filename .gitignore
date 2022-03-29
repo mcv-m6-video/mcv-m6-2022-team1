@@ -133,3 +133,5 @@ dmypy.json
 /w2/plots/t22_video/*/*.mp4
 /w2/plots/t22_video/*/*/*.mp4
 /w2/plots/t22_video/*/*/*.py
+
+/w*/results
