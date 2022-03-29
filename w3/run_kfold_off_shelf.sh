@@ -14,9 +14,9 @@ do
   for i in 0 1 2 3
   do
     echo "${i}-fold w/ arch: ${arch}"
-    python3 train_arch.py /home/group01/gt_coco/kfold_${i} \
-                          /home/group01/vdo_frames \
-                          /home/group01/m6w3/${arch}/fold_${i} \
-                          ${arch}
+    python3 off_shelf.py /home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/S03/c010/gt_coco/kfold_${i} \
+                         /home/pau/Documents/master/M6/project/data/AICity_data/AICity_data/train/S03/c010/vdo_frames \
+                         /home/pau/Documents/master/M6/project/data/results/${arch}/fold_${i} \
+                         ${arch}
   done
 done

@@ -30,12 +30,6 @@ def main(args):
     print(arch_name)
 
     register_coco_instances(
-        DATA_NAME + "_train",
-        {},
-        str(data_path / (DATA_FILE + "_train.json")),
-        str(img_path)
-    )
-    register_coco_instances(
         DATA_NAME + "_test",
         {},
         str(data_path / (DATA_FILE + "_test.json")),
@@ -46,26 +40,13 @@ def main(args):
     cfg.defrost()
     cfg.merge_from_file(model_zoo.get_config_file(arch_name))
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(arch_name)
-    cfg.SOLVER.CHECKPOINT_PERIOD = 500
-    cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
-    cfg.DATALOADER.NUM_WORKERS = 2
-    cfg.INPUT.MASK_FORMAT = "bitmask"
-    cfg.DATASETS.TRAIN = (DATA_NAME + "_train",)
     cfg.DATASETS.TEST = (DATA_NAME + "_test",)
-    cfg.SOLVER.BASE_LR = 0.00025
-    cfg.SOLVER.MAX_ITER = 5000
-    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 64
+    cfg.OUTPUT_DIR = str(out_path)
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 2
     cfg.MODEL.RETINANET.NUM_CLASSES = 2
-    cfg.OUTPUT_DIR = str(out_path)
-    cfg.SOLVER.IMS_PER_BATCH = 4
-
-    trainer = DefaultTrainer(cfg)
-    trainer.resume_or_load(resume=False)
-    trainer.train()
+    cfg.MODEL.WEIGHTS = str(out_path / "model_final.pth")
 
     """ EVALUATION """
-    cfg.MODEL.WEIGHTS = str(out_path / "model_final.pth")
 
     evaluator = COCOEvaluator(
         DATA_NAME + "_test",
