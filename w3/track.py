@@ -105,9 +105,7 @@ def visualize_overlap(track_list, frame_loader):
                 bboxes_to_draw.append(track.bbox[index])
             except ValueError:
                 pass
-        print(f"drawing")
         for x, y, w, h in bboxes_to_draw:
-            print(f"({int(x+(w/2))}, {int(y+(h/2))})")
             cv2.circle(img, (int(x+(w/2)), int(y+(h/2))), 5, (255, 0, 0), -1)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         cv2.imshow('', img)
