@@ -24,7 +24,7 @@ def read_detections(json_file: str) -> list():
     return data
 
 
-def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.4):
+def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.1):
     # Assumes first frame as initialization
 
     tracking_list = list()  # list of Track objects
@@ -49,13 +49,14 @@ def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.4):
                 # check IoU of every detected object_in_frame in new frame with previous detected bboxes in
                 # tracking_list
                 for track_prev in tracking_list:
-                    if track_prev.frame_id_appearence[-1] == frame_id - 1:  # if appeared in last frame, go on
-                        iou_between_currentNprev = iou(object_in_frame["bbox"], track_prev.bbox[-1])
-                        # FIXME: use higher IoU instead of just this
-                        if iou_between_currentNprev > IoU_threshold:
-                            track_prev.append_bbox(object_in_frame["bbox"])  # updates new bbox position
-                            idx_assigned[ii] = 0  # this object was assigned
-                            track_prev.append_frame_id_appearence(frame_id)
+                    if not track_prev.frame_id_appearence[-1] == frame_id: # ignore if already updated
+                        if track_prev.frame_id_appearence[-1] == frame_id - 1:  # if appeared in last frame, go on
+                            iou_between_currentNprev = iou(object_in_frame["bbox"], track_prev.bbox[-1])
+                            # FIXME: use higher IoU instead of just this
+                            if iou_between_currentNprev > IoU_threshold:
+                                track_prev.append_bbox(object_in_frame["bbox"])  # updates new bbox position
+                                idx_assigned[ii] = 0  # this object was assigned
+                                track_prev.append_frame_id_appearence(frame_id)
 
         # unassigned new objects -> new track
         if frame_id != init_frame_id:
@@ -113,6 +114,7 @@ def visualize_overlap(track_list, frame_loader, num_of_colors=200):
             cv2.putText(img, f"id: {id_track}", (int(x + (w / 2)), int(y + (h / 2))), cv2.FONT_HERSHEY_TRIPLEX, 1,
                         (int(color_list[id_track % num_of_colors][0]), int(color_list[id_track % num_of_colors][1]),
                          int(color_list[id_track % num_of_colors][2])), 2, cv2.LINE_AA)
+            # cv2.rectangle(img, (int(x), int(y)), (int(x + w), int(y + h)), (255,0,0), 2)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         cv2.imshow('', img)
         cv2.waitKey(1)
