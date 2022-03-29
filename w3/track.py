@@ -24,7 +24,7 @@ def read_detections(json_file: str) -> list():
     return data
 
 
-def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2):
+def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.4):
     # Assumes first frame as initialization
 
     tracking_list = list()  # list of Track objects
@@ -115,4 +115,4 @@ def visualize_overlap(track_list, frame_loader, num_of_colors=200):
                          int(color_list[id_track % num_of_colors][2])), 2, cv2.LINE_AA)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         cv2.imshow('', img)
-        cv2.waitKey(0)
+        cv2.waitKey(1)
