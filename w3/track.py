@@ -87,8 +87,8 @@ def iou(gt: list, pred: list):
 
     interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
 
-    boxAArea = (gt[2] - gt[0] + 1) * (gt[3] - gt[1] + 1)
-    boxBArea = (pred[2] - pred[0] + 1) * (pred[3] - pred[1] + 1)
+    boxAArea = (gt_x2 - gt_x1 + 1) * (gt_y2 - gt_y1 + 1)
+    boxBArea = (pd_x2 - pd_x1 + 1) * (pd_y2 - pd_y1 + 1)
 
     return interArea / float(boxAArea + boxBArea - interArea)
 
