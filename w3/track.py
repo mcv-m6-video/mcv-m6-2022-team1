@@ -93,7 +93,9 @@ def iou(gt: list, pred: list):
     return interArea / float(boxAArea + boxBArea - interArea)
 
 
-def visualize_overlap(track_list, frame_loader):
+def visualize_overlap(track_list, frame_loader, num_of_colors=200):
+    color_list = [tuple(np.random.choice(range(256), size=3)) for ic in range(num_of_colors)]
+
     for img_frame_id, img in tqdm(frame_loader):
         img = np.array(img)
         bboxes_to_draw = list()
@@ -102,11 +104,15 @@ def visualize_overlap(track_list, frame_loader):
             # if track has stored the frame id, extract bbox and append to draw it
             try:
                 index = track.frame_id_appearence.index(img_frame_id)
-                bboxes_to_draw.append(track.bbox[index])
+                associated_id = track.id
+                bboxes_to_draw.append((track.bbox[index], associated_id))
             except ValueError:
                 pass
-        for x, y, w, h in bboxes_to_draw:
-            cv2.circle(img, (int(x+(w/2)), int(y+(h/2))), 5, (255, 0, 0), -1)
+        for (x, y, w, h), id_track in bboxes_to_draw:
+            cv2.circle(img, (int(x + (w / 2)), int(y + (h / 2))), 5, (255, 0, 0), -1)
+            cv2.putText(img, f"id: {id_track}", (int(x + (w / 2)), int(y + (h / 2))), cv2.FONT_HERSHEY_TRIPLEX, 1,
+                        (int(color_list[id_track % num_of_colors][0]), int(color_list[id_track % num_of_colors][1]),
+                         int(color_list[id_track % num_of_colors][2])), 2, cv2.LINE_AA)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         cv2.imshow('', img)
         cv2.waitKey(0)
