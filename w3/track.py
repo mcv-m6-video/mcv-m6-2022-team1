@@ -99,6 +99,6 @@ def visualize_overlap(track_list, frame_loader):
             except ValueError:
                 pass
         for x, y, w, h in bboxes_to_draw:
-            # TODO draw point trajectory
-            cv2.rectangle(img, (int(x), int(y)), (int(x + w), int(y + h)), (255, 0, 0), 5)
-        cv2.imshow(' ', img)
+            cv2.circle(img, (int(x+w/2), int(y+y/2)), 5, (255, 0, 0), -1)
+        cv2.imshow('', img)
+        cv2.waitKey(0)
