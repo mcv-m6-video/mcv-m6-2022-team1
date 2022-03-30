@@ -24,7 +24,7 @@ def read_detections(json_file: str) -> list():
     return data
 
 
-def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2):
+def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_threshold =0.9999):
     # Assumes first frame as initialization
 
     tracking_list = list()  # list of Track objects
@@ -32,6 +32,7 @@ def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2):
 
     for frame_id in tqdm(range(init_frame_id, last_frame_id + 1)):
         frame_detections = [x for x in data if x["image_id"] == frame_id]
+        frame_detections = [x for x in frame_detections if x["score"] > score_threshold]
 
         num_detections = len(frame_detections)
         idx_assigned = [-1] * num_detections
@@ -49,14 +50,15 @@ def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2):
                 # check IoU of every detected object_in_frame in new frame with previous detected bboxes in
                 # tracking_list
                 for track_prev in tracking_list:
-                    if not track_prev.frame_id_appearence[-1] == frame_id:  # ignore if already updated
-                        if track_prev.frame_id_appearence[-1] == frame_id - 1:  # if appeared in last frame, go on
-                            iou_between_currentNprev = iou(object_in_frame["bbox"], track_prev.bbox[-1])
-                            # FIXME: use higher IoU instead of just this
-                            if iou_between_currentNprev > IoU_threshold:
-                                track_prev.append_bbox(object_in_frame["bbox"])  # updates new bbox position
-                                idx_assigned[ii] = 0  # this object was assigned
-                                track_prev.append_frame_id_appearence(frame_id)
+                    iou_between_currentNprev = iou(object_in_frame["bbox"], track_prev.bbox[-1])
+                    # FIXME: use higher IoU instead of just this
+                    if iou_between_currentNprev > IoU_threshold:
+                        if track_prev.frame_id_appearence[-1] == frame_id :  # if updated in this one
+                            idx_assigned[ii] = 0  # this object was assigned
+                        else:
+                            track_prev.append_bbox(object_in_frame["bbox"])  # updates new bbox position
+                            idx_assigned[ii] = 0  # this object was assigned
+                            track_prev.append_frame_id_appearence(frame_id)
 
         # unassigned new objects -> new track
         if frame_id != init_frame_id:
@@ -96,12 +98,13 @@ def iou(gt: list, pred: list):
 
 def visualize_overlap(track_list, frame_loader, num_of_colors=200):
     color_list = [tuple(np.random.choice(range(256), size=3)) for ic in range(num_of_colors)]
-    video = cv2.VideoWriter("overlap_viz.avi", 0, 10, (1920, 1080))
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    video = cv2.VideoWriter("overlap.mp4", fourcc, 10, (1920, 1080))
 
     trail_points = list()
     trail_counter = 0
     for img_frame_id, img in tqdm(frame_loader):
-        if img_frame_id == 836:
+        if img_frame_id == 1036:
             print("STOP")
             break
         img = np.array(img)
@@ -136,7 +139,7 @@ def visualize_overlap(track_list, frame_loader, num_of_colors=200):
         # # cv2.waitKey(0)
         #
         # video.write(img)
-        # if trail_counter%20 == 0:
+        # if trail_counter%50 == 0:
         #     trail_counter = 0
         #     trail_points.clear()
         # trail_counter += 1
