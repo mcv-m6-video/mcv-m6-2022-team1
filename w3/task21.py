@@ -5,7 +5,7 @@ from track import read_detections, track_max_overlap, visualize_overlap, eval_fi
 from data import FrameLoader
 import numpy as np
 
-who = 'dani'
+who = 'yola bati'
 
 if who == 'dani':
     detections_path = "E:\Master\M6 - Video analysis\Project/data/coco_instances_results.json"
