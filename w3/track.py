@@ -24,7 +24,7 @@ def read_detections(json_file: str) -> list():
     return data
 
 
-def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_threshold =0.9999):
+def track_max_overlap(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_threshold =0.9):
     # Assumes first frame as initialization
 
     tracking_list = list()  # list of Track objects
@@ -104,7 +104,7 @@ def visualize_overlap(track_list, frame_loader, num_of_colors=200):
     trail_points = list()
     trail_counter = 0
     for img_frame_id, img in tqdm(frame_loader):
-        if img_frame_id == 1036:
+        if img_frame_id == 900:
             print("STOP")
             break
         img = np.array(img)
@@ -125,18 +125,13 @@ def visualize_overlap(track_list, frame_loader, num_of_colors=200):
             cv2.putText(img, f"id: {id_track}", (int(x + (w / 2)), int(y + (h / 2))), cv2.FONT_HERSHEY_TRIPLEX, 1,
                         (int(color_list[id_track % num_of_colors][0]), int(color_list[id_track % num_of_colors][1]),
                          int(color_list[id_track % num_of_colors][2])), 2, cv2.LINE_AA)
-            # cv2.rectangle(img, (int(x), int(y)), (int(x + w), int(y + h)), (255,0,0), 2)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         video.write(img)
-        # cv2.imshow('', img)
-        # cv2.waitKey(0)
 
         # for (x, y, w, h), id_track in trail_points:
         #     cv2.circle(img, (int(x + (w / 2)), int(y + (h / 2))), 5, (255, 0, 0), -1)
         # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # video.write(img)
-        # # cv2.imshow('', img)
-        # # cv2.waitKey(0)
         #
         # video.write(img)
         # if trail_counter%50 == 0:
