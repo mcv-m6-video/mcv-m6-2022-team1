@@ -2,16 +2,25 @@ from os import makedirs
 from pathlib import Path
 
 from track import read_detections, track_max_overlap, visualize_overlap
-from w2.data import FrameLoader
+from data import FrameLoader
 import numpy as np
 
-detections_path = "/home/cisu/PycharmProjects/mcv-m6-2022-team1/w3/data/coco_instances_results.json"
-frame_path = Path(
-    "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/S03/c010/vdo_frames"
-)
-out_data = Path("/home/cisu/PycharmProjects/mcv-m6-2022-team1/w3/data")
+who = 'dani'
 
-makedirs(out_data, exist_ok=True)
+if who == 'dani':
+    detections_path = "E:\Master\M6 - Video analysis\Project/data/coco_instances_results.json"
+    frame_path = Path("E:\Master\M6 - Video analysis\Project/AICity_data/train/S03/c010/vdo_frames"    )
+    out_data = Path("E:\Master\M6 - Video analysis\Project/data")
+    
+    makedirs(out_data, exist_ok=True)
+else:
+    detections_path = "/home/cisu/PycharmProjects/mcv-m6-2022-team1/w3/data/coco_instances_results.json"
+    frame_path = Path(
+        "/home/cisu/PycharmProjects/mcv-m6-2022-team1/AICity_data/train/S03/c010/vdo_frames"
+    )
+    out_data = Path("/home/cisu/PycharmProjects/mcv-m6-2022-team1/w3/data")
+    
+    makedirs(out_data, exist_ok=True)
 
 data = read_detections(detections_path)
 
