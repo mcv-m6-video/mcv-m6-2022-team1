@@ -26,16 +26,18 @@ else:
 data = read_detections(detections_path)
 
 tracking_vel = track_KF(data, 536, 2141,  model_type = 0)
-tracking_acc = track_KF(data, 536, 2141,  model_type = 1)
+# tracking_acc = track_KF(data, 536, 2141,  model_type = 1)
 
-labels = ['image_id','category_id','id','left','top','width','height','score']
+# labels = ['image_id','category_id','id','left','top','width','height','score']
+labels = ['image_id','id','left','top','width','height','score','x','y','z']
 tracking_vel_pd = pd.DataFrame(tracking_vel,columns=labels)
-tracking_acc_pd = pd.DataFrame(tracking_acc,columns=labels)
+# tracking_acc_pd = pd.DataFrame(tracking_acc,columns=labels)
 
 print(len(tracking_vel))
 # np.savez(out_data / "tracking_listKF.npz", tracking)
 # tracking = np.load(out_data / "tracking_list.npz")
-# eval_file(track_list=tracking, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "max_overlap.cvs")
+eval_file(track_list=tracking_vel, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "KF_vel.cvs")
+# eval_file(track_list=tracking_acc_pd, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "KF_acc.cvs")
 
 # loader = FrameLoader(frame_path, .25, "upper")
 # visualize_overlap(tracking, loader)
