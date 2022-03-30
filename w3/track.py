@@ -175,7 +175,11 @@ def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_thresh
         frame_detections = [x for x in data if x["image_id"] == frame_id]
         frame_detections = [x for x in frame_detections if x["score"] > score_threshold]
 
-        dets = np.array([x['bbox'] for x in frame_detections])
+        # dets = np.array([x['bbox'] for x in frame_detections])
+        a = np.array([x['bbox'] for x in frame_detections])
+        b = np.array([x['score'] for x in frame_detections])
+        b = b.reshape((b.shape[0], 1))
+        dets = np.append(a, b, axis=1)
         dets[:,2:4] += dets[:,0:2] #convert to [x1,y1,w,h] to [x1,y1,x2,y2] for the tracker input
         
         trackers = tracker.update(dets)
