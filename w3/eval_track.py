@@ -102,8 +102,10 @@ def main(args):
 
     # Ground truth ids are the ones we want for reference
     unique_imgs_gt = gt_data["frame"].unique()
-    unique_imgs_gt = unique_imgs_gt[start_frame <= unique_imgs_gt]
-    unique_imgs_gt = unique_imgs_gt[unique_imgs_gt <= end_frame]
+
+    unique_imgs_gt = unique_imgs_gt[
+        np.logical_and(start_frame <= unique_imgs_gt, unique_imgs_gt<= end_frame)]
+
     unique_imgs_gt.sort()
 
     acc = mm.MOTAccumulator(auto_id=True)
@@ -140,11 +142,12 @@ def main(args):
         acc.update(
             np.asarray(gt_ids),
             np.asarray(ann_ids),
-            intersect
+            1 - intersect
         )
     # Just print them, nothing better thus far
     mh = mm.metrics.create()
-    summary = mh.compute(acc, metrics=['num_frames', 'idf1'], name='acc')
+    summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, name='acc')
+    summary.to_csv("./csvofshame.csv")
     print(summary)
 
 
