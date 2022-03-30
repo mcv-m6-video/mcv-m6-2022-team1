@@ -87,6 +87,9 @@ def main(args):
     gt_path = Path(args.gt_path)
     pd_path = Path(args.pd_path)
 
+    start_frame = args.start_frame
+    end_frame = args.end_frame
+
     # Load data
     if gt_path.suffix == ".xml":
         gt_data = generate_gt_from_xml(str(gt_path))
@@ -99,6 +102,7 @@ def main(args):
 
     # Ground truth ids are the ones we want for reference
     unique_imgs_gt = gt_data["frame"].unique()
+    unique_imgs_gt = unique_imgs_gt[start_frame <= unique_imgs_gt <= end_frame]
     unique_imgs_gt.sort()
 
     acc = mm.MOTAccumulator(auto_id=True)
@@ -158,6 +162,16 @@ if __name__ == "__main__":
         "pd_path",
         type=str,
         help="Path to the prediction file. A MOT track in txt format",
+    )
+    parser.add_argument(
+        "start_frame",
+        type=int,
+        help="Starting frame to consider for testing",
+    )
+    parser.add_argument(
+        "end_frame",
+        type=int,
+        help="Final frame to consider for testing",
     )
 
     args = parser.parse_args()
