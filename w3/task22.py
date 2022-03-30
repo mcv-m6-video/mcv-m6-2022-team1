@@ -25,12 +25,14 @@ else:
 
 data = read_detections(detections_path)
 
-tracking = track_KF(data, 536, 2141)
+tracking_vel = track_KF(data, 536, 2141,  model_type = 0)
+tracking_acc = track_KF(data, 536, 2141,  model_type = 1)
 
 labels = ['image_id','category_id','id','left','top','width','height','score']
-tracking_pd = pd.DataFrame(tracking,columns=labels)
+tracking_vel_pd = pd.DataFrame(tracking_vel,columns=labels)
+tracking_acc_pd = pd.DataFrame(tracking_acc,columns=labels)
 
-print(len(tracking))
+print(len(tracking_vel))
 # np.savez(out_data / "tracking_listKF.npz", tracking)
 # tracking = np.load(out_data / "tracking_list.npz")
 # eval_file(track_list=tracking, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "max_overlap.cvs")

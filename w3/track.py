@@ -3,7 +3,8 @@ import csv
 import numpy as np
 from tqdm import tqdm
 import cv2
-from SORT import Sort
+# from SORT import Sort
+from SORT_models import Sort
 
 
 class Track(object):
