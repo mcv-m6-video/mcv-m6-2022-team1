@@ -56,4 +56,4 @@ writer.writerow(tracking_vel)
 # close the file
 f.close()
 
-# runfile('E:/Master/M6 - Video analysis/Project/mcv-m6-2022-team1/w3/eval_track.py',args =' "E:\Master\M6 - Video analysis\Project/data/annotations.xml" "E:\Master\M6 - Video analysis\Project/data/tracking_KF.csv"')
+# runfile('E:/Master/M6 - Video analysis/Project/mcv-m6-2022-team1/w3/eval_track.py',args =' "E:\Master\M6 - Video analysis\Project/data/annotations.xml" "E:\Master\M6 - Video analysis\Project/data/tracking_KF.csv" 536 2140')

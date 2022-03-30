@@ -102,7 +102,8 @@ def main(args):
 
     # Ground truth ids are the ones we want for reference
     unique_imgs_gt = gt_data["frame"].unique()
-    unique_imgs_gt = unique_imgs_gt[start_frame <= unique_imgs_gt <= end_frame]
+    unique_imgs_gt = unique_imgs_gt[start_frame <= unique_imgs_gt]
+    unique_imgs_gt = unique_imgs_gt[unique_imgs_gt <= end_frame]
     unique_imgs_gt.sort()
 
     acc = mm.MOTAccumulator(auto_id=True)
