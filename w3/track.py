@@ -3,6 +3,7 @@ import csv
 import numpy as np
 from tqdm import tqdm
 import cv2
+from SORT import Sort
 
 
 class Track(object):
@@ -157,3 +158,29 @@ def eval_file(track_list, init_frame_id, last_frame_id, csv_file):
                     writer.writerow(csv_row)
             except ValueError:
                 pass
+
+
+def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_threshold =0.9):
+    # Assumes first frame as initialization
+
+    bb_id_updated = []
+
+    tracker = Sort()
+    
+    for frame_id in tqdm(range(init_frame_id, last_frame_id + 1)):
+        
+
+        frame_detections = [x for x in data if x["image_id"] == frame_id]
+        frame_detections = [x for x in frame_detections if x["score"] > score_threshold]
+
+        dets = np.array([x['bbox'] for x in frame_detections])
+        dets[:,2:4] += dets[:,0:2] #convert to [x1,y1,w,h] to [x1,y1,x2,y2] for the tracker input
+        
+        trackers = tracker.update(dets)
+        
+        for bb_dets, bb_update in zip(frame_detections, trackers):
+            bb_id_updated.append([bb_dets['image_id'], bb_dets['category_id'], int(bb_update[4]), bb_update[0], bb_update[1], bb_update[2]-bb_update[0], bb_update[3]-bb_update[1], bb_dets['score']])
+            # bb_id_updated.append([bb_dets[0], bb_dets[1], int(bb_update[4]), bb_dets[3],bb_dets[4], bb_dets[5], bb_dets[6], bb_dets[7]])
+        
+
+    return bb_id_updated
