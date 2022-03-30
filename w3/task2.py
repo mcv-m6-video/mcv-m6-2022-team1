@@ -1,7 +1,7 @@
 from os import makedirs
 from pathlib import Path
-
-from track import read_detections, track_max_overlap, visualize_overlap
+ 
+from track import read_detections, track_max_overlap, visualize_overlap, eval_file
 from data import FrameLoader
 import numpy as np
 
@@ -28,6 +28,7 @@ tracking = track_max_overlap(data, 536, 2141)
 print(len(tracking))
 np.savez(out_data / "tracking_list.npz", tracking)
 # tracking = np.load(out_data / "tracking_list.npz")
+# eval_file(track_list=tracking, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "max_overlap.cvs")
 
 loader = FrameLoader(frame_path, .25, "upper")
 visualize_overlap(tracking, loader)
