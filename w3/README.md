@@ -37,12 +37,19 @@ classes. We run them in batch for all architectures using
 [```run_kfold_off_shelf.sh```](./run_kfold_off_shelf.sh), depending on whether
 we used k-fold evaluation or holdout.
 
+![](./plots/plot_ft.png)
+
 To train the models we used the [```train_arch.py```](./train_arch.py) script.
 We wrote three training bash scripts for different scenarios, but they essentially
 do the same (train holdout or kfold variations of the models): 
 [```run_train_holdout.sh```](./run_train_holdout.sh),
 [```run_kfold_cluster.sh```](./run_kfold_cluster.sh),
 [```run_train_retinanet.sh```](./run_train_retinanet.sh).
+
+![](./plots/plot_offshelf.png)
+
+Plots for this part were crafted using a Jupyter Notebook, which we have appended
+for completeness ([```extract_stats.ipynb```](./extract_stats.ipynb))
 
 To create GIFs we have written the [```make_video.py```](./make_video.py) and
 [```make_video.sh```](./make_video.sh), which output mp4 files that can be
