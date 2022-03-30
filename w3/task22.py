@@ -34,10 +34,26 @@ tracking_vel_pd = pd.DataFrame(tracking_vel,columns=labels)
 # tracking_acc_pd = pd.DataFrame(tracking_acc,columns=labels)
 
 print(len(tracking_vel))
-# np.savez(out_data / "tracking_listKF.npz", tracking)
-# tracking = np.load(out_data / "tracking_list.npz")
-eval_file(track_list=tracking_vel, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "KF_vel.cvs")
+np.savez(out_data / "tracking_listKF.npz", tracking_vel)
+# tracking = np.load(out_data / "tracking_listKF.npz")
+# eval_file(track_list=tracking_vel, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "KF_vel.cvs")
 # eval_file(track_list=tracking_acc_pd, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "KF_acc.cvs")
 
 # loader = FrameLoader(frame_path, .25, "upper")
 # visualize_overlap(tracking, loader)
+
+import csv
+
+# open the file in the write mode
+f = open(out_data / "tracking_KF.csv", 'w')
+
+# create the csv writer
+writer = csv.writer(f)
+
+# write a row to the csv file
+writer.writerow(tracking_vel)
+
+# close the file
+f.close()
+
+# runfile('E:/Master/M6 - Video analysis/Project/mcv-m6-2022-team1/w3/eval_track.py',args =' "E:\Master\M6 - Video analysis\Project/data/annotations.xml" "E:\Master\M6 - Video analysis\Project/data/tracking_KF.csv"')
