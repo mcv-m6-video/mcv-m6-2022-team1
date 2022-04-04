@@ -16,17 +16,16 @@ post = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE)
 # prev = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_COLOR)
 # post = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_COLOR)
 
-tock = optical_flow_block_matching(prev,post, "forward", 32, 32,'MSE')
-print('Time: ', tock)
+# tock = optical_flow_block_matching(prev,post, "forward", 32, 32,'MSE')
+# print('Time: ', tock)
 
-bp()
 gt_of = read_of("flow_noc/000045_10.png")
 gt_of2 = load_flow("flow_noc/000045_10.png")
 
 const_types = ["forward", "backward"]
 distances = ['MSE','MAD']
-block_sizes = [8,16,32,64,21,41]
-search_radii = [8,16,32,64,21,41]
+block_sizes = [8,16,32,48,21,41]
+search_radii = [8,16,32,48,21,41]
 
 results = []
 
@@ -35,12 +34,12 @@ for const_type in const_types:
         for block_size in block_sizes:
             for search_radius in search_radii:
                 
-                estimated_of,elapsed_time = optical_flow_block_matching(prev, post, const_type, block_size, search_radius, distance)
+                # estimated_of,elapsed_time = optical_flow_block_matching(prev, post, const_type, block_size, search_radius, distance)
                 
-                # start_time = time.time()
-                # estimated_of = block_matching(prev, post, const_type, block_size, search_radius, distance)
-                # end_time = time.time()
-                # elapsed_time = end_time-start_time
+                start_time = time.time()
+                estimated_of = block_matching(prev, post, const_type, block_size, search_radius, distance)
+                end_time = time.time()
+                elapsed_time = end_time-start_time
                 # msen, pepn, of_error1 = compute_of_metrics(estimated_of, gt_of)
                 
                 msen = flow_msen(estimated_of,gt_of)
