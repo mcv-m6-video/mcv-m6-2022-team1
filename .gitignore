@@ -135,3 +135,4 @@ dmypy.json
 /w2/plots/t22_video/*/*/*.py
 
 /w*/results
+w4/deepflow/*
