@@ -7,30 +7,7 @@ import motmetrics as mm
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
 from tqdm.auto import tqdm
-
-
-def fiou(bboxes1, bboxes2):
-    """
-    Fast IoU implementation from https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
-    We compared it against our own and decided to use this as it is much more
-    memory efficient.
-    """
-    x11, y11, x12, y12 = np.split(bboxes1, 4, axis=1)
-    x21, y21, x22, y22 = np.split(bboxes2, 4, axis=1)
-
-    xa = np.maximum(x11, np.transpose(x21))
-    ya = np.maximum(y11, np.transpose(y21))
-    xb = np.minimum(x12, np.transpose(x22))
-    yb = np.minimum(y12, np.transpose(y22))
-
-    inter_area = np.maximum((xb - xa + 1), 0) * np.maximum((yb - ya + 1), 0)
-
-    boxa_area = (x12 - x11 + 1) * (y12 - y11 + 1)
-    boxb_area = (x22 - x21 + 1) * (y22 - y21 + 1)
-
-    iou = inter_area / (boxa_area + np.transpose(boxb_area) - inter_area)
-
-    return iou
+from utils import iou
 
 
 def load_annotations(path: str) -> pd.DataFrame:
@@ -102,8 +79,10 @@ def main(args):
 
     # Ground truth ids are the ones we want for reference
     unique_imgs_gt = gt_data["frame"].unique()
-    unique_imgs_gt = unique_imgs_gt[start_frame <= unique_imgs_gt]
-    unique_imgs_gt = unique_imgs_gt[unique_imgs_gt <= end_frame]
+
+    unique_imgs_gt = unique_imgs_gt[
+        np.logical_and(start_frame <= unique_imgs_gt, unique_imgs_gt<= end_frame)]
+
     unique_imgs_gt.sort()
 
     acc = mm.MOTAccumulator(auto_id=True)
@@ -135,16 +114,17 @@ def main(args):
         ann_bboxes[:, 2] = ann_bboxes[:, 0] + ann_bboxes[:, 2]
         ann_bboxes[:, 3] = ann_bboxes[:, 1] + ann_bboxes[:, 3]
 
-        intersect = fiou(gt_bboxes, ann_bboxes)
+        intersect = iou(gt_bboxes, ann_bboxes)
 
         acc.update(
             np.asarray(gt_ids),
             np.asarray(ann_ids),
-            intersect
+            1 - intersect
         )
     # Just print them, nothing better thus far
     mh = mm.metrics.create()
-    summary = mh.compute(acc, metrics=['num_frames', 'idf1'], name='acc')
+    summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, name='acc')
+    summary.to_csv("./csvofshame.csv")
     print(summary)
 
 
