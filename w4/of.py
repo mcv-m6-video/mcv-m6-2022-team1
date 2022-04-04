@@ -1,8 +1,10 @@
 import time
 import numpy as np
 from sklearn.feature_extraction.image import extract_patches_2d
+from pdb import set_trace as bp
+from utils import mse, mad
 
-def optical_flow_block_matching(prev,post, const_type, block_size, search_radius):
+def optical_flow_block_matching(prev,post, const_type, block_size, search_radius, distance):
     
     tick = time.time()
 
@@ -12,7 +14,12 @@ def optical_flow_block_matching(prev,post, const_type, block_size, search_radius
     elif const_type == "backward":
         reference = post
         target = prev
-
+        
+    if distance == 'MSE':
+        dist = mse
+    elif distance == 'MAD':
+        dist = mad
+        
     assert reference.shape == target.shape, "Image sizes do not match"
 
     reference = reference.astype(float)
@@ -42,6 +49,9 @@ def optical_flow_block_matching(prev,post, const_type, block_size, search_radius
     )
     nreference = nreference.swapaxes(1, 2).reshape((-1, block_size, block_size))
 
+    of = np.zeros((height, width, 3), dtype=float)
+    
+    
     for ind_ref, block in enumerate(nreference):
         top = max(0, ((ind_ref % vblocks) * block_size) - search_radius)
         left = max(0, ((ind_ref % hblocks) * block_size) - search_radius)
@@ -53,9 +63,21 @@ def optical_flow_block_matching(prev,post, const_type, block_size, search_radius
             patch_size=(block_size, block_size),
         )
 
-        mse_matrix = ((block[None, :] - patches[:, None])**2).mean()
-        mad_matrix = (np.abs(block[None, :] - patches[:, None])).mean()
-
+        # mse_matrix = ((block[None, :] - patches[:, None])**2).mean()
+        # mad_matrix = (np.abs(block[None, :] - patches[:, None])).mean()
+        
+        dist_matrix = np.zeros(len(patches))
+        for ind_tar, patch in enumerate(patches):
+            dist_matrix[ind_tar] = dist(block, patch)
+    
+        index = np.argmin(dist_matrix)
+        u,v = np.unravel_index(index, block.shape, 'F')
+        
+        of[top:bot, left:right, :] = [u, v, 1]
+        
+    if const_type == "backward":
+        of[:,:,0:2] = -of[:,:,0:2]
+        
     tock = time.time() - tick
     
-    return tock
+    return of, tock

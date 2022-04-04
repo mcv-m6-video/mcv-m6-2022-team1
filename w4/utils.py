@@ -153,6 +153,31 @@ def read_of(flow_path):
     # Reorder channels
     return np.stack((flow_u, flow_v, flow_valid), axis=2)
 
+def load_flow(path):
+  flow = cv2.imread(path, cv2.IMREAD_UNCHANGED).astype(np.double)
+
+  u_flow = (flow[:,:,2] - 2**15)/ 64
+  v_flow = (flow[:,:,1] - 2**15)/ 64
+  b_valid = flow[:,:,0]
+
+  # # remove invalid points
+  # u_flow[b_valid == 0] = 0
+  # v_flow[b_valid == 0] = 0
+
+  # flow = [u_flow, v_flow, b_valid]
+  flow = np.stack((u_flow, v_flow, b_valid),axis=-1)
+  return flow
+
+def flow_error_distance(gt,kitti):
+  return np.sqrt(np.square(gt[:,:,0] - kitti[:,:,0]) + np.square(gt[:,:,1] - kitti[:,:,1]))
+
+def flow_msen(gt, kitti):
+    return np.mean(flow_error_distance(gt,kitti)[gt[:,:,2]==1])
+
+# percentage of Erroneous Pixels in Non-occluded areas
+def flow_pepn(gt, kitti, th=3):
+    return 100 * (flow_error_distance(gt,kitti)[gt[:,:,2]==1] > th).sum() / (gt[:,:,2] != 0).sum()
+
 class OpticalFlowBlockMatching:
     def __init__(self, type="FW", block_size=5, area_search=40, error_function="SSD", window_stride=5):
         """
