@@ -145,6 +145,53 @@ def visualize_overlap(track_list, frame_loader, num_of_colors=200):
     video.release()
 
 
+def visualize_KF(track_list, frame_loader, num_of_colors=200):
+    color_list = [tuple(np.random.choice(range(256), size=3)) for ic in range(num_of_colors)]
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    video = cv2.VideoWriter("overlap.mp4", fourcc, 10, (1920, 1080))
+
+    trail_points = list()
+    trail_counter = 0
+    for img_frame_id, img in tqdm(frame_loader):
+        if img_frame_id == 900:
+            print("STOP")
+            break
+        img = np.array(img)
+        bboxes_to_draw = list()
+
+        for track in track_list:
+            # if track has stored the frame id, extract bbox and append to draw itvideo.write(img)
+            try:
+                index = track[0]
+                associated_id = track[1]
+                bboxes_to_draw.append((track[2:6], associated_id))
+                trail_points.append((track[2:6], associated_id))
+            except ValueError:
+                pass
+
+        for (x, y, w, h), id_track in bboxes_to_draw:
+            cv2.circle(img, (int(x + (w / 2)), int(y + (h / 2))), 5, (255, 0, 0), -1)
+            cv2.putText(img, f"id: {id_track}", (int(x + (w / 2)), int(y + (h / 2))), cv2.FONT_HERSHEY_TRIPLEX, 1,
+                        (int(color_list[id_track % num_of_colors][0]), int(color_list[id_track % num_of_colors][1]),
+                         int(color_list[id_track % num_of_colors][2])), 2, cv2.LINE_AA)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        video.write(img)
+
+        # for (x, y, w, h), id_track in trail_points:
+        #     cv2.circle(img, (int(x + (w / 2)), int(y + (h / 2))), 5, (255, 0, 0), -1)
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # video.write(img)
+        #
+        # video.write(img)
+        # if trail_counter%50 == 0:
+        #     trail_counter = 0
+        #     trail_points.clear()
+        # trail_counter += 1
+
+    cv2.destroyAllWindows()
+    video.release()
+
+
 def eval_file(track_list, init_frame_id, last_frame_id, csv_file):
     for frame_id in tqdm(range(init_frame_id, last_frame_id + 1)):
         for track in track_list:
@@ -186,7 +233,7 @@ def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_thresh
         
         for bb_dets, bb_update in zip(frame_detections, trackers):
             # bb_id_updated.append([bb_dets['image_id'], bb_dets['category_id'], int(bb_update[4]), bb_update[0], bb_update[1], bb_update[2]-bb_update[0], bb_update[3]-bb_update[1], bb_dets['score']])
-            bb_id_updated.append([bb_dets['image_id'], int(bb_update[4]), bb_update[0], bb_update[1], bb_update[2]-bb_update[0], bb_update[3]-bb_update[1], -1, -1, -1, -1])
+            bb_id_updated.append([bb_dets['image_id'], int(bb_update[4])-1, bb_update[0], bb_update[1], bb_update[2]-bb_update[0], bb_update[3]-bb_update[1], -1, -1, -1, -1])
         
 
     return bb_id_updated

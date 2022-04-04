@@ -1,7 +1,7 @@
 from os import makedirs
 from pathlib import Path
  
-from track import read_detections, track_max_overlap, visualize_overlap, eval_file, track_KF
+from track import read_detections, track_max_overlap, visualize_overlap, eval_file, track_KF, visualize_KF
 from data import FrameLoader
 import numpy as np
 import pandas as pd
@@ -39,8 +39,8 @@ np.savez(out_data / "tracking_listKF.npz", tracking_vel)
 # eval_file(track_list=tracking_vel, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "KF_vel.cvs")
 # eval_file(track_list=tracking_acc_pd, init_frame_id=536, last_frame_id=2141, csv_file=out_data / "KF_acc.cvs")
 
-# loader = FrameLoader(frame_path, .25, "upper")
-# visualize_overlap(tracking, loader)
+loader = FrameLoader(frame_path, .25, "upper")
+visualize_KF(tracking_vel, loader)
 
 import csv
 
