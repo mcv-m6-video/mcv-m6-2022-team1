@@ -145,7 +145,7 @@ class MaxOverlapTracker:
 
         self.current_track = len(self.alive_tracks)
 
-        for current_frame in range(self.start_frame + 1, self.end_frame):
+        for current_frame in range(self.start_frame + 1, self.end_frame + 1):
             current_bboxes = np.asarray(
                 mots_style[mots_style["frame"] == current_frame]
                 [["left", "top", "right", "bot"]]
