@@ -9,10 +9,10 @@ import matplotlib.pyplot as plt
 
 from sklearn.feature_extraction.image import extract_patches_2d
 from utils import imshow, mse, block_matching, OpticalFlowBlockMatching, compute_of_metrics, read_of, load_flow, flow_msen, flow_pepn
-from of import optical_flow_block_matching
+from of import optical_flow_block_matching, optical_flow_block_matching_mat
 
-prev = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE)
-post = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE)
+prev = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE).astype(float)
+post = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE).astype(float)
 # prev = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_COLOR)
 # post = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_COLOR)
 
@@ -35,6 +35,7 @@ for const_type in const_types:
             for search_radius in search_radii:
                 
                 # estimated_of,elapsed_time = optical_flow_block_matching(prev, post, const_type, block_size, search_radius, distance)
+                # estimated_of,elapsed_time = optical_flow_block_matching_mat(prev, post, const_type, block_size, search_radius, distance)
                 
                 start_time = time.time()
                 estimated_of = block_matching(prev, post, const_type, block_size, search_radius, distance)
@@ -47,7 +48,7 @@ for const_type in const_types:
                 results.append([const_type, distance, block_size, search_radius, elapsed_time, msen, pepn])
                 print([const_type, distance, block_size, search_radius, elapsed_time, msen, pepn])
                 
-with open('results.pkl', 'wb') as handle:
+with open('results2.pkl', 'wb') as handle:
     pkl.dump(results, handle, protocol=pkl.HIGHEST_PROTOCOL)
 
 # tock = optical_flow_block_matching(prev,post, "forward", 32, 32,'MSE')
