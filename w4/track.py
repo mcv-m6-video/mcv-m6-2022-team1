@@ -98,7 +98,10 @@ class MaxOverlapTracker:
 
         """
         alive = [x.get_last_bbox() for x in self.alive_tracks]
-        alive = np.asarray(alive)
+        if len(alive):
+            alive = np.asarray(alive)
+        else:
+            alive = np.zeros((0, 4))
 
         return alive
 
