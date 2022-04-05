@@ -24,10 +24,10 @@ do
 
           echo There are $nframes frames
 
-          python3 ../task_2.py "$campath" $nframes
+          python3 ../task_2.py "$campath" $nframes --purge
           python3 ../eval_track.py "$dataset_root"/"$seq"/"$cam"/gt/gt.txt \
-                                   "$campath"/track.txt \
-                                   "$campath"/summary.csv \
+                                   "$campath"/track_purge.txt \
+                                   "$campath"/summary_purge.csv \
                                    0 "$nframes"
         fi
       done

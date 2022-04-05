@@ -2,7 +2,7 @@ import json
 import csv
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import cv2
 from SORT import Sort
 from utils import iou, select_bboxes
@@ -33,13 +33,26 @@ class Track:
     def __repr__(self):
         return str(self)
 
+    def __len__(self):
+        return len(self.bboxes)
+
+    def __iadd__(self, other):
+        self.merge_track(other)
+
     @staticmethod
-    def _get_center(bbox):
+    def _get_center(bbox: np.ndarray):
         return bbox.reshape((2, 2)).mean(0)
+
+    def merge_track(self, other):
+        self.bboxes += other.bboxes
+        self.centers += other.centers
 
     def append_bbox(self, new_bbox: np.ndarray):
         self.bboxes.append(new_bbox)
         self.centers.append(self._get_center(new_bbox))
+
+    def get_first_bbox(self):
+        return self.bboxes[0]
 
     def get_last_bbox(self):
         return self.bboxes[-1]
@@ -47,8 +60,20 @@ class Track:
     def get_last_center(self):
         return self.centers[-1]
 
+    def get_first_frame(self):
+        return self.start_frame
+
+    def get_last_frame(self):
+        return self.start_frame + len(self.bboxes)
+
     def get_id(self):
         return self.track_id
+
+    def get_avg_displ(self):
+        centers = np.asarray(self.centers)
+        delta = centers[1:] - centers[:1]
+
+        return np.linalg.norm(delta.mean(0), 2)
 
     def cvt_mots(self):
         return [[   # FIXME: Confidences should be added sooner or later
@@ -148,7 +173,8 @@ class MaxOverlapTracker:
 
         self.current_track = len(self.alive_tracks)
 
-        for current_frame in range(self.start_frame + 1, self.end_frame + 1):
+        for current_frame in tqdm(range(self.start_frame + 1, self.end_frame + 1),
+                                  desc="Tracking progress..."):
             current_bboxes = np.asarray(
                 mots_style[mots_style["frame"] == current_frame]
                 [["left", "top", "right", "bot"]]
@@ -180,6 +206,10 @@ class MaxOverlapTracker:
             self._kill_tracks(to_kill)
             self._add_tracks(new_tracks)
 
+    def kill_all(self):
+        self.dead_tracks += self.alive_tracks
+        self.alive_tracks = []
+
     def output_tracks(self, out_path: str):
         all_tracks = self._merge_tracks()
         all_mots = []
@@ -187,6 +217,15 @@ class MaxOverlapTracker:
             all_mots += track.cvt_mots()
 
         pd.DataFrame(all_mots).to_csv(out_path, header=False, index=False)
+
+    def cleanup_tracks(self, min_track_length: int, tol: float = 25):
+        # Remove any short sequences --> Outliers
+        self.dead_tracks = [x for x in self.dead_tracks if len(x) >= min_track_length]
+
+        # Remove static sequences
+        self.dead_tracks = [x for x in self.dead_tracks if x.get_avg_displ() > tol]
+
+
 
 
 def read_detections(json_file: str) -> list:

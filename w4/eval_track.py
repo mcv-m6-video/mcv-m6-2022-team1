@@ -63,6 +63,7 @@ def generate_gt_from_xml(in_path: str) -> pd.DataFrame:
 def main(args):
     gt_path = Path(args.gt_path)
     pd_path = Path(args.pd_path)
+    out_path = Path(args.out_path)
 
     start_frame = args.start_frame
     end_frame = args.end_frame
@@ -124,7 +125,7 @@ def main(args):
     # Just print them, nothing better thus far
     mh = mm.metrics.create()
     summary = mh.compute(acc, metrics=mm.metrics.motchallenge_metrics, name='acc')
-    summary.to_csv(str(pd_path.parent / "stats.csv"))
+    summary.to_csv(str(out_path))
     print(summary)
 
 
@@ -143,6 +144,11 @@ if __name__ == "__main__":
         "pd_path",
         type=str,
         help="Path to the prediction file. A MOT track in txt format",
+    )
+    parser.add_argument(
+        "out_path",
+        type=str,
+        help="Path to the output summary file (fn included)",
     )
     parser.add_argument(
         "start_frame",
