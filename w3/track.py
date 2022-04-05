@@ -404,12 +404,10 @@ def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_thresh
     tracker = Sort()
     
     for frame_id in tqdm(range(init_frame_id, last_frame_id + 1)):
-        
 
         frame_detections = [x for x in data if x["image_id"] == frame_id]
         frame_detections = [x for x in frame_detections if x["score"] > score_threshold]
 
-        # dets = np.array([x['bbox'] for x in frame_detections])
         a = np.array([x['bbox'] for x in frame_detections])
         b = np.array([x['score'] for x in frame_detections])
         b = b.reshape((b.shape[0], 1))
@@ -419,10 +417,10 @@ def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_thresh
         trackers = tracker.update(dets)
         
         for bb_dets, bb_update in zip(frame_detections, trackers):
-            # bb_id_updated.append([bb_dets['image_id'], bb_dets['category_id'], int(bb_update[4]), bb_update[0], bb_update[1], bb_update[2]-bb_update[0], bb_update[3]-bb_update[1], bb_dets['score']])
-            bb_id_updated.append([bb_dets['image_id'], int(bb_update[4])-1, bb_update[0], bb_update[1], bb_update[2]-bb_update[0], bb_update[3]-bb_update[1], -1, -1, -1, -1])
-        
+            bb_id_updated.append([
+                bb_dets['image_id'], int(bb_update[4])-1, 
+                bb_update[0], bb_update[1], bb_update[2]-bb_update[0], 
+                bb_update[3]-bb_update[1], -1, -1, -1, -1
+            ])
 
     return bb_id_updated
-
-

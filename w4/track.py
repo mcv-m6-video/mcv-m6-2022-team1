@@ -344,6 +344,5 @@ def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_thresh
                 bb_update[0], bb_update[1], bb_update[2]-bb_update[0],
                 bb_update[3]-bb_update[1], -1, -1, -1, -1
             ])
-        
 
     return bb_id_updated
