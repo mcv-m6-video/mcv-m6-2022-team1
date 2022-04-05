@@ -3,7 +3,9 @@
 # Quick script to create all vdo folders with frames and convert all datasets
 # into COCO format.
 # Run with a single argument in double quotes with the desired path expansion
-# Example:
+
+# Example: Run as
+# ./split_in_frames.sh "<dir to aicity data>/train/S*/c*"
 
 elms=($1)
 
@@ -22,7 +24,7 @@ do
   echo ""
 
   mkdir "${path}/vdo_frames/"
-  # ffmpeg -i "${path}/vdo.avi" "${path}/vdo_frames/%05d.jpg"
+  ffmpeg -i "${path}/vdo.avi" "${path}/vdo_frames/%05d.jpg"
   nframes=$(find "${path}"/vdo_frames/*.jpg | wc --lines)
   python3 ../misc/cvt_coco_gt.py "${path}/gt/gt.txt" "${nframes}"
 done

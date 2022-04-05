@@ -60,7 +60,7 @@ def main(args):
     cfg.DATASETS.TRAIN = tuple(train_datasets)
     cfg.DATASETS.TEST = tuple(test_datasets)
     #cfg.SOLVER.BASE_LR = 0.00025
-    cfg.SOLVER.MAX_ITER = 500
+    cfg.SOLVER.MAX_ITER = 2500
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 64
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
     cfg.MODEL.RETINANET.NUM_CLASSES = 1
@@ -89,19 +89,23 @@ def main(args):
     """ EVALUATION """
     cfg.MODEL.WEIGHTS = str(out_path / "model_final.pth")
 
-    evaluator = COCOEvaluator(
-        DATA_NAME + "_test",
-        output_dir=str(out_path),
+    for test_ds in test_datasets:
+        print(f"Testing on {test_ds}")
+        (out_path / test_ds).mkdir(exist_ok=True, parents=True)
+
+        evaluator = COCOEvaluator(
+            test_ds,
+            output_dir=str(out_path / test_ds),
         )
 
-    predictor = DefaultPredictor(cfg)
-    val_loader = build_detection_test_loader(cfg, test_datasets)
+        predictor = DefaultPredictor(cfg)
+        val_loader = build_detection_test_loader(cfg, test_ds)
 
-    stats = inference_on_dataset(predictor.model, val_loader, evaluator)
-    print(stats)
+        stats = inference_on_dataset(predictor.model, val_loader, evaluator)
+        print(stats)
 
-    with open(out_path / "stats.json", 'w') as f_stats:
-        json.dump(stats, f_stats)
+        with open(out_path / test_ds / "stats.json", 'w') as f_stats:
+            json.dump(stats, f_stats)
 
 
 if __name__ == "__main__":
