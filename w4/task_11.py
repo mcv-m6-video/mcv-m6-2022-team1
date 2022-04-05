@@ -24,7 +24,7 @@ gt_of2 = load_flow("flow_noc/000045_10.png")
 
 const_types = ["forward", "backward"]
 distances = ['MSE','MAD']
-block_sizes = [8,16,32,48,21,41]
+block_sizes = [64,81,128]
 search_radii = [8,16,32,48,21,41]
 
 results = []
@@ -48,7 +48,7 @@ for const_type in const_types:
                 results.append([const_type, distance, block_size, search_radius, elapsed_time, msen, pepn])
                 print([const_type, distance, block_size, search_radius, elapsed_time, msen, pepn])
                 
-with open('results2.pkl', 'wb') as handle:
+with open('results3.pkl', 'wb') as handle:
     pkl.dump(results, handle, protocol=pkl.HIGHEST_PROTOCOL)
 
 # tock = optical_flow_block_matching(prev,post, "forward", 32, 32,'MSE')
