@@ -34,6 +34,11 @@ def main(args):
     test_paths = [y for x in TEST_SEQS for y in (data_path / x).glob('*')
                   if y.is_dir()]
 
+    train_datasets = [f"{DATA_NAME}{path.parts[-2]}{path.parts[-1]}"
+                      for path in train_paths]
+    test_datasets = [f"{DATA_NAME}{path.parts[-2]}{path.parts[-1]}"
+                     for path in test_paths]
+
     print(arch_name)
 
     for path in train_paths + test_paths:
@@ -52,12 +57,10 @@ def main(args):
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
     cfg.DATALOADER.NUM_WORKERS = 2
     cfg.INPUT.MASK_FORMAT = "bitmask"
-    cfg.DATASETS.TRAIN = tuple([f"{DATA_NAME}{path.parts[-2]}{path.parts[-1]}"
-                                for path in train_paths])
-    cfg.DATASETS.TEST = tuple([f"{DATA_NAME}{path.parts[-2]}{path.parts[-1]}"
-                               for path in test_paths])
+    cfg.DATASETS.TRAIN = tuple(train_datasets)
+    cfg.DATASETS.TEST = tuple(test_datasets)
     #cfg.SOLVER.BASE_LR = 0.00025
-    cfg.SOLVER.MAX_ITER = 5000
+    cfg.SOLVER.MAX_ITER = 500
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 64
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1
     cfg.MODEL.RETINANET.NUM_CLASSES = 1
@@ -92,7 +95,7 @@ def main(args):
         )
 
     predictor = DefaultPredictor(cfg)
-    val_loader = build_detection_test_loader(cfg, DATA_NAME + "_test")
+    val_loader = build_detection_test_loader(cfg, test_datasets)
 
     stats = inference_on_dataset(predictor.model, val_loader, evaluator)
     print(stats)
