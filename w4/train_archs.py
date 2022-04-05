@@ -17,9 +17,6 @@ import detectron2.data.transforms as T
 DATA_NAME = 'ai_cities'
 DATA_FILE = 'gt_coco.json'
 
-TRAINING_SEQS = ["S01", "S04"]
-TEST_SEQS = ["S03"]
-
 
 def main(args):
     setup_logger()
@@ -29,9 +26,19 @@ def main(args):
     out_path.mkdir(exist_ok=True, parents=True)
     arch_name = args.arch_name
 
-    train_paths = [y for x in TRAINING_SEQS for y in (data_path / x).glob('*')
+    training_seqs = ["S01", "S04"]
+    test_seqs = ["S03"]
+
+    if args.train_on is not None:
+        print(f"Overriden default training sequences: {args.train_on}")
+        training_seqs = args.train_on
+    if args.test_on is not None:
+        print(f"Overriden default testing sequences: {args.test_on}")
+        test_seqs = args.test_on
+
+    train_paths = [y for x in training_seqs for y in (data_path / x).glob('*')
                    if y.is_dir()]
-    test_paths = [y for x in TEST_SEQS for y in (data_path / x).glob('*')
+    test_paths = [y for x in test_seqs for y in (data_path / x).glob('*')
                   if y.is_dir()]
 
     train_datasets = [f"{DATA_NAME}{path.parts[-2]}{path.parts[-1]}"
@@ -127,6 +134,22 @@ if __name__ == "__main__":
         "arch_name",
         type=str,
         help="yaml file for pre-saved architecture (Detectron 2)",
+    )
+    parser.add_argument(
+        "--train_on",
+        type=str,
+        nargs="+",
+        help="Sequences to train on. If not provided, just use default ones",
+        default=None,
+        required=False,
+    )
+    parser.add_argument(
+        "--test_on",
+        type=str,
+        nargs="+",
+        help="Sequences to test on. If not provided, just use default ones",
+        default=None,
+        required=False,
     )
 
     args = parser.parse_args()
