@@ -139,11 +139,14 @@ def optical_flow_block_matching_mat(prev,post, const_type, block_size, search_ra
     
             dist_matrix = ((block[None, :] - patches[:, None])**2)
         
-            index = np.argmin(dist_matrix[:,0,0,0])
-
-            u,v = np.unravel_index(index, (block.shape[0]+1,block.shape[1]+1), 'F')
+            index = np.argmin(dist_matrix.sum(axis = (1,2,3)))
+            
+            dim_u = bot-top-block_size+1
+            dim_v = right-left-block_size+1
+            u,v = np.unravel_index(index, (dim_u,dim_v), 'C')
             
             of[top:bot, left:right, :] = [u, v, 1]
+            # of[top:bot, left:right, :] = [u - np.round(dim_u/2), v - np.round(dim_v/2), 1]
             # of[top:bot, left:right, :] = [u - np.round((bot-top)/2), v - np.round((right-left)/2), 1]
             # of[top:bot, left:right, :] = [u - np.round((block.shape[0]+1)/2), v - np.round((block.shape[1]+1)/2), 1]
     elif distance == 'MAD':
@@ -160,8 +163,12 @@ def optical_flow_block_matching_mat(prev,post, const_type, block_size, search_ra
     
             dist_matrix = (np.abs(block[None, :] - patches[:, None]))
         
-            index = np.argmin(dist_matrix[:,0,0,0])
-            u,v = np.unravel_index(index, (block.shape[0]+1,block.shape[1]+1), 'C')
+            index = np.argmin(dist_matrix.sum(axis = (1,2,3)))
+            
+            dim_u = bot-top-block_size+1
+            dim_v = right-left-block_size+1
+            
+            u,v = np.unravel_index(index, (dim_u,dim_v), 'C')
             
             of[top:bot, left:right, :] = [u, v, 1]
             # of[top:bot, left:right, :] = [u - np.round((bot-top)/2), v - np.round((right-left)/2), 1]
