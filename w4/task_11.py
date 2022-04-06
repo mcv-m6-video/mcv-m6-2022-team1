@@ -11,16 +11,16 @@ from sklearn.feature_extraction.image import extract_patches_2d
 from utils import imshow, mse, block_matching, OpticalFlowBlockMatching, compute_of_metrics, read_of, load_flow, flow_msen, flow_pepn
 from of import optical_flow_block_matching, optical_flow_block_matching_mat
 
-prev = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE).astype(float)
-post = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE).astype(float)
+prev = cv2.imread('plots/colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE).astype(float)
+post = cv2.imread('plots/colored_0/000045_10.png', cv2.IMREAD_GRAYSCALE).astype(float)
 # prev = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_COLOR)
 # post = cv2.imread('colored_0/000045_10.png', cv2.IMREAD_COLOR)
 
 # tock = optical_flow_block_matching(prev,post, "forward", 32, 32,'MSE')
 # print('Time: ', tock)
 
-gt_of = read_of("flow_noc/000045_10.png")
-gt_of2 = load_flow("flow_noc/000045_10.png")
+gt_of = read_of("plots/flow_noc/000045_10.png")
+# gt_of2 = load_flow("plots/flow_noc/000045_10.png")
 
 const_types = ["forward", "backward"]
 distances = ['MSE','MAD']
