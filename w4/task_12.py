@@ -8,7 +8,7 @@ import argparse
 from pyflow import pyflow
 # git clone https://github.com/pathak22/pyflow.git
 #  python setup.py build_ext -i
-from flowlib import read_flow
+from external_lib.flowlib import read_flow
 from of_utils import evaluate_flow, draw_flow, draw_hsv, HornSchunck
 
 methods_accro = {'pyflow': "Pyflow", 'fb': "FlowFarneback", 'lk': "Lucas-Kanade", 'hc': "HornSchunck"}

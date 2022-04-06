@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 import cv2
-from SORT import Sort
+from external_lib.SORT import Sort
 from utils import iou, select_bboxes
 # from SORT_models import Sort
 

@@ -3,10 +3,10 @@ import pickle as pkl
 import matplotlib.pyplot as plt
 
     
-with open('results.pkl', 'rb') as f:
+with open('plots/results.pkl', 'rb') as f:
     results = pkl.load(f) #const_type distance block_size search_radius elapsed_time msen pepn
     
-with open('results2.pkl', 'rb') as f:
+with open('plots/results2.pkl', 'rb') as f:
     results2 = pkl.load(f) #const_type distance block_size search_radius elapsed_time msen pepn
     
 results = results+results2
