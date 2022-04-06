@@ -66,9 +66,9 @@ def opt_flow(prev_path, post_path, gt_path, method='pyflow'):
 
 
 if __name__ == '__main__':
-    prev = 'colored_0/000045_10.png'
-    post = 'colored_0/000045_11.png'
-    gt = '/home/cisu/PycharmProjects/mcv-m6-2022-team1/w4/flow_noc/000045_10.png'
+    prev = 'plots/colored_0/000045_10.png'
+    post = 'plots/colored_0/000045_11.png'
+    gt = 'plots/flow_noc/000045_10.png'
 
     of_draws_out_path = './of_draws'
     os.makedirs(of_draws_out_path, exist_ok=True)
