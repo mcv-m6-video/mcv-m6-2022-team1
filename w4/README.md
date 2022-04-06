@@ -73,7 +73,12 @@ libraries we use need to be installed separately.
 
 ### Script usage
 
-Core scripts that implement each task are named accordingly.
+There is a fair share of paths that can be found within the scripts that may 
+need to be adjusted to your machine (we have used argument parsers whenever
+we could, but some automations like bash scripts are designed to exploit
+path structures as much as possible).
+
+Core scripts that implement each task are named accordingly:
 
 - [```task_11.py```](./task_11.py) performs Task 1.1 - our implementation
 of the Block Matching Algorithm. The script itself automates experiments, 
@@ -87,6 +92,13 @@ the optical flow tracker may be found in the [```track.py```](./track.py)
 module.
 - [```task_2.py```](./task_2.py) performs Task 2. It computes tracks using max
 overlap and our simple track purging system (can be disabled or enabled).
+
+Some other important scripts include
+- [```eval_track.py```](./eval_track.py), which evaluates the performance of
+a track comparing either against a .xml or a .txt mots file.
+- [```build_opticalflow.py```](./build_opticalflow.py) generates an optical 
+flow .npy file for each pair of frames in a video. **Use with care, results
+are uncompressed and may use a lot of disk space**.
 
 Many of these scripts are designed to be run through bash scripts, if they are 
 to be run as singletons, use the ```help``` command for each of them.
