@@ -8,6 +8,7 @@ from external_lib.SORT import Sort
 from utils import iou, select_bboxes
 # from SORT_models import Sort
 
+from pathlib import Path
 
 class Track:
     def __init__(self, track_id: int, first_bbox: np.ndarray, start_frame: int):
@@ -226,6 +227,169 @@ class MaxOverlapTracker:
         self.dead_tracks = [x for x in self.dead_tracks if x.get_avg_displ() > tol]
 
 
+class MaxOverlapTrackerOpticalFlow:
+    def __init__(
+            self,
+            start_frame: int,
+            end_frame: int,
+            of_path: Path,
+            thresh: float = 0.5
+    ) -> None:
+        """
+        Given a detection input file in COCO format, this class performs
+        maximum overlap tracking of the detected objects.
+
+        Parameters
+        ----------
+        start_frame: int
+            First frame to consider
+        end_frame: int
+            Final frame to consider
+        of_path: Path
+            The path where Optical Flow predictions may be found
+        thresh: float
+            IoU acceptance threshold
+        """
+        self.alive_tracks = []
+        self.dead_tracks = []
+
+        self.start_frame = start_frame
+        self.end_frame = end_frame
+
+        self.current_track = 0
+        self.thresh = thresh
+
+        self.of_path = of_path
+
+    def _numpy_alive_boxes(self) -> np.ndarray:
+        """
+        Get a Numpy representation of the set of boxes in tracks that are still
+        alive.
+
+        Returns
+        -------
+        np.ndarray
+            Set of "alive" boxes in XYXY format.
+
+        """
+        alive = [x.get_last_bbox() for x in self.alive_tracks]
+        if len(alive):
+            alive = np.asarray(alive)
+        else:
+            alive = np.zeros((0, 4))
+
+        return alive
+
+    def _add_box_to_track(
+            self,
+            track_index: int,
+            new_bbox: np.ndarray
+    ) -> None:
+        """
+        Adds a new bounding box to an existing track.
+
+        Parameters
+        ----------
+        track_index: int
+            Index of the tracking object to append the box to.
+        new_bbox: np.ndarray
+            Bounding box to be appended in XYXY format.
+        """
+        self.alive_tracks[track_index].append_bbox(new_bbox)
+
+    def _kill_tracks(self, track_indices: list):
+        for ii in track_indices:
+            self.dead_tracks.append(self.alive_tracks[ii])
+        self.alive_tracks = [x for ii, x in enumerate(self.alive_tracks)
+                             if ii not in track_indices]
+
+    def _add_tracks(self, track_list: list):
+        for ii in track_list:
+            self.alive_tracks.append(ii)
+
+    def _merge_tracks(self) -> list:
+        return self.alive_tracks + self.dead_tracks
+
+    def track_objects(self, detections: list):
+        mots_style = coco2motsXYXY(detections)
+        first = np.asarray(
+            mots_style[mots_style["frame"] == self.start_frame]
+            [["left", "top", "right", "bot"]]
+        )
+
+        self.alive_tracks = [
+            Track(ii, bbox, self.start_frame) for ii, bbox in enumerate(first)
+        ]
+
+        self.current_track = len(self.alive_tracks)
+
+        for current_frame in tqdm(range(self.start_frame + 1, self.end_frame + 1),
+                                  desc="Tracking progress..."):
+
+            of_estimate = np.load(str(self.of_path / f"{current_frame - 1:05d}.npy"))
+            of_estimate *= np.asarray(of_estimate.shape[:-1])[None, :]
+            current_bboxes = np.asarray(
+                mots_style[mots_style["frame"] == current_frame]
+                [["left", "top", "right", "bot"]]
+            )
+
+            # TODO: NMS <here> could work
+
+            prev_bboxes = self._numpy_alive_boxes()
+            prev_indices = prev_bboxes.astype(int)
+
+            altered_bboxes = np.copy(prev_bboxes)
+            for ii in range(len(prev_indices)):
+                block = of_estimate[
+                    prev_indices[ii, 0]:prev_indices[ii, 2],
+                    prev_indices[ii, 1]:prev_indices[ii, 3],
+                    :
+                ]
+                vector = block.reshape((-1, 2)).mean(axis=0)
+                altered_bboxes[ii, 0:2] += vector
+                altered_bboxes[ii, 2:] += vector
+
+            iou_boxes = iou(altered_bboxes, current_bboxes)
+            chosen_preds = select_bboxes(iou_boxes, self.thresh)
+
+            new_tracks = []
+
+            for pred, jj in enumerate(chosen_preds):
+                if jj >= 0:
+                    self._add_box_to_track(jj, current_bboxes[pred])
+                else:
+                    self.current_track += 1
+                    new_tracks.append(Track(
+                        self.current_track,
+                        current_bboxes[pred],
+                        current_frame
+                    ))
+
+            to_kill = np.where(
+                np.isin(np.arange(len(prev_bboxes)), chosen_preds, invert=True)
+            )[0].tolist()
+
+            self._kill_tracks(to_kill)
+            self._add_tracks(new_tracks)
+
+    def kill_all(self):
+        self.dead_tracks += self.alive_tracks
+        self.alive_tracks = []
+
+    def output_tracks(self, out_path: str):
+        all_tracks = self._merge_tracks()
+        all_mots = []
+        for track in all_tracks:
+            all_mots += track.cvt_mots()
+
+        pd.DataFrame(all_mots).to_csv(out_path, header=False, index=False)
+
+    def cleanup_tracks(self, min_track_length: int, tol: float = 25):
+        # Remove any short sequences --> Outliers
+        self.dead_tracks = [x for x in self.dead_tracks if len(x) >= min_track_length]
+
+        # Remove static sequences
+        self.dead_tracks = [x for x in self.dead_tracks if x.get_avg_displ() > tol]
 
 
 def read_detections(json_file: str) -> list:
