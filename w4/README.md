@@ -60,6 +60,8 @@ The following directory structures are assumed
             \-- track[_purge].txt               // Track in MOT format
 ```
 
+We provide our results tree [here](https://drive.google.com/file/d/1xa2zWrlLdvIVEBt0Nq52W1ao1nN94020/view?usp=sharing)
+
 ### Requisites
 
 We have a requirements.txt file in the root directory detailing packages needed
