@@ -37,7 +37,7 @@ for sq in sq_list:
 
         detections_txt2Json(os.path.join(sub, "det", detections_model + '.txt'), os.path.join(sub, "det", detections_model + ".json"))
         data = read_detections(os.path.join(sub, "det", detections_model + ".json"))
-        tracker = MaxOverlapTracker(536, 2141)
+        tracker = MaxOverlapTracker(536, 2110)
         tracker.track_objects(data)
 
         tracker.output_tracks("./csvofshame.csv")
