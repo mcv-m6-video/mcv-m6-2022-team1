@@ -1,53 +1,59 @@
-import csv
-import json
-import os.path
-
-import cv2
-import pandas as pd
+import numpy as np
 
 
-def detections_txt2Json(tracks_txt_file, output_file_json):
-    json_list = []
-    with open(tracks_txt_file) as csvFile:
-        data = {}
-        csvReader = csv.reader(csvFile)
-        for rows in csvReader:
-            data["image_id"] = rows[0]
-            data["bbox"] = [rows[2], rows[3], rows[4], rows[5]]
-            data["category_id"] = 1
-            data["score"] = rows[6]
-            json_list.append(data)
+def iou(bboxes1, bboxes2):
+    """
+    Fast IoU implementation from https://medium.com/@venuktan/vectorized-intersection-over-union-iou-in-numpy-and-tensor-flow-4fa16231b63d
+    We compared it against our own and decided to use this as it is much more
+    memory efficient.
+    """
+    x11, y11, x12, y12 = np.split(bboxes1, 4, axis=1)
+    x21, y21, x22, y22 = np.split(bboxes2, 4, axis=1)
 
-    json_list = json_list.reverse()
-    with open(output_file_json, 'w') as fout:
-        json.dump(json_list, fout)
+    xa = np.maximum(x11, np.transpose(x21))
+    ya = np.maximum(y11, np.transpose(y21))
+    xb = np.minimum(x12, np.transpose(x22))
+    yb = np.minimum(y12, np.transpose(y22))
+
+    inter_area = np.maximum((xb - xa + 1), 0) * np.maximum((yb - ya + 1), 0)
+
+    boxa_area = (x12 - x11 + 1) * (y12 - y11 + 1)
+    boxb_area = (x22 - x21 + 1) * (y22 - y21 + 1)
+
+    iou = inter_area / (boxa_area + np.transpose(boxb_area) - inter_area)
+
+    return iou
 
 
-def create_data_metric_learning(tracks_csv, frame_path, out_path):
-    # read track csv
-    df = pd.read_csv(tracks_csv, sep=",", header=None,
-                     names=["frame", "ID", "left", "top", "width", "height", "confidence", "null1", "null2", "null3"])
+def select_bboxes(inter: np.ndarray, thresh: float) -> np.ndarray:
+    """
+    From the output of IoU (an NxM matrix where N is the number of ground truth
+    samples and M is the number of predictions and the value it contains is the
+    Intersection Over Union between the n-th and m-th box), generates the chosen
+    predicted bounding boxes assuming they are above a set threshold.
 
-    num_frames = df["frame"].max()
+    Parameters
+    ----------
+    inter: np.ndarray
+        NxM matrix where N is the number of ground truth
+        samples and M is the number of predictions and the value it contains is the
+        intersection-over-union between the n-th and m-th box.
+    thresh: float
+        Acceptance value for Intersection over Union.
 
-    # go frame by frame
-    for i in range(1, num_frames + 1):
-        detects_for_frame = df.loc[df['frame'] == i]
+    Returns
+    -------
+    np.ndarray
+        M-length array with the selected GT box at each prediction. If a
+        prediction box has no corresponding gt, -1 is returned accordingly.
+    """
+    n, m = inter.shape
+    ind_max = np.full(m, -1)
 
-        img = cv2.imread(os.path.join(frame_path, "" + str(i) + ".jpg"))
+    for ii in range(m):
+        above = inter[:, ii] >= thresh
+        if np.any(above):
+            ind_max[ii] = np.argmax(inter[:, ii])
+            inter[ind_max[ii],:] = 0.0
 
-        count = 0
-
-        for indx in detects_for_frame.index:
-            (x, y, w, h) = (
-                detects_for_frame['left'][indx], detects_for_frame['top'][indx], detects_for_frame['width'][indx],
-                detects_for_frame['height'][indx])
-
-            detection_ID = detects_for_frame["ID"][indx]
-
-            store_path = os.path.join(out_path, detection_ID)
-
-            os.makedirs(store_path, exist_ok=True)  # every id in a different folder
-
-            cropped_image = img[y:y + h, x:x + w]
-            cv2.imwrite(os.path.join(store_path, str(count) + ".jpg"), cropped_image)
+    return ind_max

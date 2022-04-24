@@ -2,11 +2,8 @@ import os
 from os import makedirs
 from pathlib import Path
 
-from w3.track import read_detections, visualize_overlap, eval_file, MaxOverlapTracker
-from w3.data import FrameLoader
-import numpy as np
-
-from w5.utils import create_data_metric_learning, detections_txt2Json
+from track import read_detections, MaxOverlapTracker
+from build_data_utils import create_data_metric_learning, detections_txt2Json
 
 who = 'marcos'
 
