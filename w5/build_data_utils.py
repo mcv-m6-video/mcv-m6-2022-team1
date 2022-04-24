@@ -9,13 +9,13 @@ import pandas as pd
 def detections_txt2Json(tracks_txt_file, output_file_json):
     json_list = []
     with open(tracks_txt_file) as csvFile:
-        data = {}
         csvReader = csv.reader(csvFile)
         for rows in csvReader:
-            data["image_id"] = int(rows[0])
-            data["bbox"] = [float(rows[2]), float(rows[3]), float(rows[4]), float(rows[5])]
-            data["category_id"] = 1
-            data["score"] = float(rows[6])
+            data = {"image_id": int(rows[0]),
+                    "bbox": [float(rows[2]), float(rows[3]), float(rows[4]), float(rows[5])],
+                    "category_id": 1,
+                    "score": float(rows[6])
+                    }
             json_list.append(data)
 
     with open(output_file_json, 'w') as fout:

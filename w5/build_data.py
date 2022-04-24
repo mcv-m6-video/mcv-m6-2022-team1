@@ -28,7 +28,7 @@ else:
     detections_model = "det_mask_rcnn"
 
 sq_list = ["S01", "S03", "S04"]
-
+sq_list = ["S01"]
 for sq in sq_list:
     path_to_cam = os.path.join(detections_path, sq)  # ../S01
     subfolders = [f.path for f in os.scandir(path_to_cam) if f.is_dir()]
@@ -37,7 +37,7 @@ for sq in sq_list:
 
         detections_txt2Json(os.path.join(sub, "det", detections_model + '.txt'), os.path.join(sub, "det", detections_model + ".json"))
         data = read_detections(os.path.join(sub, "det", detections_model + ".json"))
-        tracker = MaxOverlapTracker(536, 2110)
+        tracker = MaxOverlapTracker(data[0]["image_id"], data[-1]["image_id"])
         tracker.track_objects(data)
 
         tracker.output_tracks("./csvofshame.csv")
