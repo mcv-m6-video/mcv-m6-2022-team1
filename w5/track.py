@@ -2,11 +2,13 @@ import json
 import csv
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import cv2
 from SORT import Sort
-from utils import iou, select_bboxes
+from utils.eval import iou, select_bboxes
 # from SORT_models import Sort
+
+from pathlib import Path
 
 
 class Track:
@@ -33,13 +35,26 @@ class Track:
     def __repr__(self):
         return str(self)
 
+    def __len__(self):
+        return len(self.bboxes)
+
+    def __iadd__(self, other):
+        self.merge_track(other)
+
     @staticmethod
-    def _get_center(bbox):
+    def _get_center(bbox: np.ndarray):
         return bbox.reshape((2, 2)).mean(0)
+
+    def merge_track(self, other):
+        self.bboxes += other.bboxes
+        self.centers += other.centers
 
     def append_bbox(self, new_bbox: np.ndarray):
         self.bboxes.append(new_bbox)
         self.centers.append(self._get_center(new_bbox))
+
+    def get_first_bbox(self):
+        return self.bboxes[0]
 
     def get_last_bbox(self):
         return self.bboxes[-1]
@@ -47,11 +62,23 @@ class Track:
     def get_last_center(self):
         return self.centers[-1]
 
+    def get_first_frame(self):
+        return self.start_frame
+
+    def get_last_frame(self):
+        return self.start_frame + len(self.bboxes)
+
     def get_id(self):
         return self.track_id
 
+    def get_avg_displ(self):
+        centers = np.asarray(self.centers)
+        delta = centers[1:] - centers[:1]
+
+        return np.linalg.norm(delta.mean(0), 2)
+
     def cvt_mots(self):
-        return [[   # FIXME: Confidences should be added sooner or later
+        return [[  # FIXME: Confidences should be added sooner or later
             self.start_frame + ii, self.track_id, x[0], x[1], x[2] - x[0],
             x[3] - x[1], 1, -1, -1, -1] for ii, x in enumerate(self.bboxes)
         ]
@@ -98,7 +125,10 @@ class MaxOverlapTracker:
 
         """
         alive = [x.get_last_bbox() for x in self.alive_tracks]
-        alive = np.asarray(alive)
+        if len(alive):
+            alive = np.asarray(alive)
+        else:
+            alive = np.zeros((0, 4))
 
         return alive
 
@@ -145,7 +175,8 @@ class MaxOverlapTracker:
 
         self.current_track = len(self.alive_tracks)
 
-        for current_frame in range(self.start_frame + 1, self.end_frame + 1):
+        for current_frame in tqdm(range(self.start_frame + 1, self.end_frame + 1),
+                                  desc="Tracking progress..."):
             current_bboxes = np.asarray(
                 mots_style[mots_style["frame"] == current_frame]
                 [["left", "top", "right", "bot"]]
@@ -177,6 +208,10 @@ class MaxOverlapTracker:
             self._kill_tracks(to_kill)
             self._add_tracks(new_tracks)
 
+    def kill_all(self):
+        self.dead_tracks += self.alive_tracks
+        self.alive_tracks = []
+
     def output_tracks(self, out_path: str):
         all_tracks = self._merge_tracks()
         all_mots = []
@@ -184,6 +219,178 @@ class MaxOverlapTracker:
             all_mots += track.cvt_mots()
 
         pd.DataFrame(all_mots).to_csv(out_path, header=False, index=False)
+
+    def cleanup_tracks(self, min_track_length: int, tol: float = 25):
+        # Remove any short sequences --> Outliers
+        self.dead_tracks = [x for x in self.dead_tracks if len(x) >= min_track_length]
+
+        # Remove static sequences
+        self.dead_tracks = [x for x in self.dead_tracks if x.get_avg_displ() > tol]
+
+
+class MaxOverlapTrackerOpticalFlow:
+    def __init__(
+            self,
+            start_frame: int,
+            end_frame: int,
+            of_path: Path,
+            thresh: float = 0.5
+    ) -> None:
+        """
+        Given a detection input file in COCO format, this class performs
+        maximum overlap tracking of the detected objects.
+
+        Parameters
+        ----------
+        start_frame: int
+            First frame to consider
+        end_frame: int
+            Final frame to consider
+        of_path: Path
+            The path where Optical Flow predictions may be found
+        thresh: float
+            IoU acceptance threshold
+        """
+        self.alive_tracks = []
+        self.dead_tracks = []
+
+        self.start_frame = start_frame
+        self.end_frame = end_frame
+
+        self.current_track = 0
+        self.thresh = thresh
+
+        self.of_path = of_path
+
+    def _numpy_alive_boxes(self) -> np.ndarray:
+        """
+        Get a Numpy representation of the set of boxes in tracks that are still
+        alive.
+
+        Returns
+        -------
+        np.ndarray
+            Set of "alive" boxes in XYXY format.
+
+        """
+        alive = [x.get_last_bbox() for x in self.alive_tracks]
+        if len(alive):
+            alive = np.asarray(alive)
+        else:
+            alive = np.zeros((0, 4))
+
+        return alive
+
+    def _add_box_to_track(
+            self,
+            track_index: int,
+            new_bbox: np.ndarray
+    ) -> None:
+        """
+        Adds a new bounding box to an existing track.
+
+        Parameters
+        ----------
+        track_index: int
+            Index of the tracking object to append the box to.
+        new_bbox: np.ndarray
+            Bounding box to be appended in XYXY format.
+        """
+        self.alive_tracks[track_index].append_bbox(new_bbox)
+
+    def _kill_tracks(self, track_indices: list):
+        for ii in track_indices:
+            self.dead_tracks.append(self.alive_tracks[ii])
+        self.alive_tracks = [x for ii, x in enumerate(self.alive_tracks)
+                             if ii not in track_indices]
+
+    def _add_tracks(self, track_list: list):
+        for ii in track_list:
+            self.alive_tracks.append(ii)
+
+    def _merge_tracks(self) -> list:
+        return self.alive_tracks + self.dead_tracks
+
+    def track_objects(self, detections: list):
+        mots_style = coco2motsXYXY(detections)
+        first = np.asarray(
+            mots_style[mots_style["frame"] == self.start_frame]
+            [["left", "top", "right", "bot"]]
+        )
+
+        self.alive_tracks = [
+            Track(ii, bbox, self.start_frame) for ii, bbox in enumerate(first)
+        ]
+
+        self.current_track = len(self.alive_tracks)
+
+        for current_frame in tqdm(range(self.start_frame + 1, self.end_frame + 1),
+                                  desc="Tracking progress..."):
+
+            of_estimate = np.load(str(self.of_path / f"{current_frame - 1:05d}.npy"))
+            of_estimate *= np.asarray(of_estimate.shape[:-1])[None, :]
+            current_bboxes = np.asarray(
+                mots_style[mots_style["frame"] == current_frame]
+                [["left", "top", "right", "bot"]]
+            )
+
+            # TODO: NMS <here> could work
+
+            prev_bboxes = self._numpy_alive_boxes()
+            prev_indices = prev_bboxes.astype(int)
+
+            altered_bboxes = np.copy(prev_bboxes)
+            for ii in range(len(prev_indices)):
+                block = of_estimate[
+                        prev_indices[ii, 0]:prev_indices[ii, 2],
+                        prev_indices[ii, 1]:prev_indices[ii, 3],
+                        :
+                        ]
+                vector = block.reshape((-1, 2)).mean(axis=0)
+                altered_bboxes[ii, 0:2] += vector
+                altered_bboxes[ii, 2:] += vector
+
+            iou_boxes = iou(altered_bboxes, current_bboxes)
+            chosen_preds = select_bboxes(iou_boxes, self.thresh)
+
+            new_tracks = []
+
+            for pred, jj in enumerate(chosen_preds):
+                if jj >= 0:
+                    self._add_box_to_track(jj, current_bboxes[pred])
+                else:
+                    self.current_track += 1
+                    new_tracks.append(Track(
+                        self.current_track,
+                        current_bboxes[pred],
+                        current_frame
+                    ))
+
+            to_kill = np.where(
+                np.isin(np.arange(len(prev_bboxes)), chosen_preds, invert=True)
+            )[0].tolist()
+
+            self._kill_tracks(to_kill)
+            self._add_tracks(new_tracks)
+
+    def kill_all(self):
+        self.dead_tracks += self.alive_tracks
+        self.alive_tracks = []
+
+    def output_tracks(self, out_path: str):
+        all_tracks = self._merge_tracks()
+        all_mots = []
+        for track in all_tracks:
+            all_mots += track.cvt_mots()
+
+        pd.DataFrame(all_mots).to_csv(out_path, header=False, index=False)
+
+    def cleanup_tracks(self, min_track_length: int, tol: float = 25):
+        # Remove any short sequences --> Outliers
+        self.dead_tracks = [x for x in self.dead_tracks if len(x) >= min_track_length]
+
+        # Remove static sequences
+        self.dead_tracks = [x for x in self.dead_tracks if x.get_avg_displ() > tol]
 
 
 def read_detections(json_file: str) -> list:
@@ -205,84 +412,6 @@ def coco2motsXYXY(
                                        "bot", "confidence"])
     mots = mots.sort_values(by="frame")
     return mots
-
-
-# def track_max_overlap(
-#         data,
-#         init_frame_id,
-#         last_frame_id,
-#         IoU_threshold=0.2,
-#         score_threshold=0.9
-# ):
-#     # Assumes first frame as initialization
-#
-#     tracking_list = list()  # list of Track objects
-#     track_id = 0
-#
-#     for frame_id in tqdm(range(init_frame_id, last_frame_id + 1)):
-#         frame_detections = [x for x in data if x["image_id"] == frame_id]
-#         frame_detections = [x for x in frame_detections if x["score"] > score_threshold]
-#
-#         num_detections = len(frame_detections)
-#         idx_assigned = [-1] * num_detections
-#
-#         for ii, object_in_frame in enumerate(frame_detections):
-#             if frame_id == init_frame_id:  # initial frame
-#                 # appends new track
-#                 new_track = Track(track_id)
-#                 new_track.append_bbox(object_in_frame["bbox"])
-#                 new_track.append_frame_id_appearence(frame_id)
-#                 tracking_list.append(new_track)
-#                 track_id += 1
-#
-#             else:
-#                 # check IoU of every detected object_in_frame in new frame with previous detected bboxes in
-#                 # tracking_list
-#                 for track_prev in tracking_list:
-#                     iou_between_currentNprev = iou(object_in_frame["bbox"], track_prev.bbox[-1])
-#                     # FIXME: use higher IoU instead of just this
-#                     if iou_between_currentNprev > IoU_threshold:
-#                         if track_prev.frame_id_appearence[-1] == frame_id :  # if updated in this one
-#                             idx_assigned[ii] = 0  # this object was assigned
-#                         else:
-#                             track_prev.append_bbox(object_in_frame["bbox"])  # updates new bbox position
-#                             idx_assigned[ii] = 0  # this object was assigned
-#                             track_prev.append_frame_id_appearence(frame_id)
-#
-#         # unassigned new objects -> new track
-#         if frame_id != init_frame_id:
-#             for jj, is_assigned in enumerate(idx_assigned):
-#                 if is_assigned == -1:  # if not assigned
-#                     new_track = Track(track_id)
-#                     new_track.append_bbox(frame_detections[jj]["bbox"])
-#                     new_track.append_frame_id_appearence(frame_id)
-#                     tracking_list.append(new_track)
-#                     track_id += 1
-#
-#     return tracking_list
-
-
-# def iou(gt: list, pred: list):
-#     gt_x1, gt_y1, gt_w, gt_h = gt
-#     pd_x1, pd_y1, pd_w, pd_h = pred
-#
-#     gt_x2 = gt_x1 + gt_w
-#     pd_x2 = pd_x1 + pd_w
-#
-#     gt_y2 = gt_y1 + gt_h
-#     pd_y2 = pd_y1 + pd_h
-#
-#     xA = max(gt_x1, pd_x1)
-#     yA = max(gt_y1, pd_y1)
-#     xB = min(gt_x2, pd_x2)
-#     yB = min(gt_y2, pd_y2)
-#
-#     interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-#
-#     boxAArea = (gt_x2 - gt_x1 + 1) * (gt_y2 - gt_y1 + 1)
-#     boxBArea = (pd_x2 - pd_x1 + 1) * (pd_y2 - pd_y1 + 1)
-#
-#     return interArea / float(boxAArea + boxBArea - interArea)
 
 
 def visualize_overlap(track_list, frame_loader, num_of_colors=200):
@@ -395,14 +524,14 @@ def eval_file(track_list, init_frame_id, last_frame_id, csv_file):
                 pass
 
 
-def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_threshold =0.9, model_type = 0):
+def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_threshold=0.9, model_type=0):
     # Assumes first frame as initialization
 
     bb_id_updated = []
 
     # tracker = Sort(model_type = model_type)
     tracker = Sort()
-    
+
     for frame_id in tqdm(range(init_frame_id, last_frame_id + 1)):
 
         frame_detections = [x for x in data if x["image_id"] == frame_id]
@@ -412,15 +541,15 @@ def track_KF(data, init_frame_id, last_frame_id, IoU_threshold=0.2, score_thresh
         b = np.array([x['score'] for x in frame_detections])
         b = b.reshape((b.shape[0], 1))
         dets = np.append(a, b, axis=1)
-        dets[:,2:4] += dets[:,0:2] #convert to [x1,y1,w,h] to [x1,y1,x2,y2] for the tracker input
-        
+        dets[:, 2:4] += dets[:, 0:2]
+
         trackers = tracker.update(dets)
-        
+
         for bb_dets, bb_update in zip(frame_detections, trackers):
             bb_id_updated.append([
-                bb_dets['image_id'], int(bb_update[4])-1, 
-                bb_update[0], bb_update[1], bb_update[2]-bb_update[0], 
-                bb_update[3]-bb_update[1], -1, -1, -1, -1
+                bb_dets['image_id'], int(bb_update[4]) - 1,
+                bb_update[0], bb_update[1], bb_update[2] - bb_update[0],
+                                     bb_update[3] - bb_update[1], -1, -1, -1, -1
             ])
 
     return bb_id_updated

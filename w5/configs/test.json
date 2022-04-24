@@ -1,0 +1,25 @@
+{
+  "exp_name": "test",
+  "dataset": {
+    "train_sequences": ["S01", "S04"],
+    "test_sequences": ["S03"]
+  },
+  "model": {
+    "embedding_layers": [512, 256],
+    "freeze_layers": 1
+  },
+  "training": {
+    "grad_clipping": 1.0,
+    "device": "cuda",
+    "learning_rate": 0.0003,
+    "batch_size": 20,
+    "weight_decay": 0.0,
+    "mining": "semihard",
+    "epochs": 100,
+    "loss_margin": 0.2,
+    "mine_margin": 0.2,
+    "save_every": 5,
+    "test_every": 5,
+    "lr_gamma": 0.98
+  }
+}
