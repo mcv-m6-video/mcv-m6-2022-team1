@@ -5,7 +5,14 @@ from utils import data, viz
 
 #%%
 
-gt_path = Path('/home/pau/Documents/datasets/aicity')
+who = "marcos"
+
+if who == "pau":
+    gt_path = Path('/home/pau/Documents/datasets/aicity')
+elif who == "marcos":
+    gt_path = Path('/home/cisu/PycharmProjects/mcv-m6-2022-team1/w5/DATA')
+else:
+    gt_path = Path('/home/pau/Documents/datasets/aicity')
 
 for sequence in (gt_path / "train").glob("*"):
     for camera in sequence.glob("*"):
