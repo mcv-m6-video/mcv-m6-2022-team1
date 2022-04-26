@@ -42,6 +42,8 @@ class CarIdResnet(nn.Module):
         self.model = nn.Sequential(*list(backbone.children())[:-1], embedder)
 
     def freeze(self, to_freeze: int):
+        if to_freeze < 0:
+            return
         model_children = list(self.model.children())
         index = len(model_children) - to_freeze
         for layer in model_children[:index]:

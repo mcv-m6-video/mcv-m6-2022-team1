@@ -1,24 +1,24 @@
 {
-  "exp_name": "margin01",
+  "exp_name": "margin02_s04",
   "dataset": {
-    "train_sequences": ["S01", "S04"],
-    "test_sequences": ["S03"]
+    "train_sequences": ["S01", "S03"],
+    "test_sequences": ["S04"]
   },
   "model": {
     "embedding_layers": [512, 256],
-    "freeze_layers": 1
+    "freeze_layers": -1
   },
   "training": {
     "same_class": 4,
     "grad_clipping": 1.0,
     "device": "cuda",
     "learning_rate": 0.0003,
-    "batch_size": 20,
+    "batch_size": 40,
     "weight_decay": 0.0,
     "mining": "semihard",
     "epochs": 100,
     "loss_margin": 0.2,
-    "mine_margin": 0.4,
+    "mine_margin": 0.8,
     "save_every": 5,
     "test_every": 5,
     "lr_gamma": 0.98
