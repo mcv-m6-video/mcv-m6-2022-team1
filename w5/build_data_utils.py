@@ -17,7 +17,7 @@ def detections_txt2Json(tracks_txt_file, output_file_json, confidence_thresh=0.8
                     "category_id": 1,
                     "score": float(rows[6])
                     }
-            if rows[6] > confidence_thresh:
+            if float(rows[6]) > confidence_thresh:
                 json_list.append(data)
 
     with open(output_file_json, 'w') as fout:
