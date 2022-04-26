@@ -9,10 +9,11 @@
     "freeze_layers": 1
   },
   "training": {
+    "same_class": 4,
     "grad_clipping": 1.0,
     "device": "cuda",
     "learning_rate": 0.0003,
-    "batch_size": 20,
+    "batch_size": 10,
     "weight_decay": 0.0,
     "mining": "semihard",
     "epochs": 100,

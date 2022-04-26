@@ -87,6 +87,7 @@ def main(args):
 
     # Setup model
     model = CarIdResnet(cfg["model"]["embedding_layers"])
+    model.freeze(cfg["model"]["freeze_layers"])
     model = model.to(device)
 
     # Metric learning stuff
