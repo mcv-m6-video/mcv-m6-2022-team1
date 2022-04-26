@@ -27,7 +27,7 @@ for sequence in (gt_path / "train").glob("*"):
         for ii in unique_id:
             (output / f"{ii}").mkdir(exist_ok=True)
 
-        for ind in tqdm(unique_frame,desc=f"Building dataset for {camera}"):
+        for ind in tqdm(unique_frame,desc=f"Building dataset for {str(camera).split('/')[-1]}"):
             slice = anns[anns["frame"] == ind]
 
             img = cv2.imread(str(camera / "vdo_frames" / f"{ind:05d}.jpg"))
