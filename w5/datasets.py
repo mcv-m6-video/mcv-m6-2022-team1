@@ -47,3 +47,33 @@ class CarIdDataset(Dataset):
 
     def get_labels(self):
         return self.labels
+
+
+class CarIdProcessed(Dataset):
+    TFORMS = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+    def __init__(self, path: str):
+        self.labels = []
+        self.paths = []
+
+        root_path = Path(path)
+        for camera in root_path.glob("ai_citiesS??c???"):
+            for track_id in (camera / "cars").glob("*"):
+                for frame in track_id.glob("*"):
+                    self.labels.append(int(track_id.parts[-1]))
+                    self.paths.append(str(frame))
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, item):
+        img = Image.open(self.paths[item])
+        img = self.TFORMS(img)
+        return img, self.labels[item]
+
+    def get_labels(self):
+        return self.labels

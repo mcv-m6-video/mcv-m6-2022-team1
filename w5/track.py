@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 import cv2
-from external_lib.SORT import Sort
+# from external_lib.SORT import Sort
 from utils.eval import iou, select_bboxes
 # from SORT_models import Sort
 
@@ -228,7 +228,7 @@ class MaxOverlapTracker:
         self.dead_tracks = [x for x in self.dead_tracks if x.get_avg_displ() > tol]
 
 
-class MaxOverlapTrackerOpticalFlow:
+class MaxOverlapTrackerOpticalFlow(MaxOverlapTracker):
     def __init__(
             self,
             start_frame: int,
@@ -251,65 +251,8 @@ class MaxOverlapTrackerOpticalFlow:
         thresh: float
             IoU acceptance threshold
         """
-        self.alive_tracks = []
-        self.dead_tracks = []
-
-        self.start_frame = start_frame
-        self.end_frame = end_frame
-
-        self.current_track = 0
-        self.thresh = thresh
-
+        super(MaxOverlapTrackerOpticalFlow).__init__(start_frame, end_frame, thresh)
         self.of_path = of_path
-
-    def _numpy_alive_boxes(self) -> np.ndarray:
-        """
-        Get a Numpy representation of the set of boxes in tracks that are still
-        alive.
-
-        Returns
-        -------
-        np.ndarray
-            Set of "alive" boxes in XYXY format.
-
-        """
-        alive = [x.get_last_bbox() for x in self.alive_tracks]
-        if len(alive):
-            alive = np.asarray(alive)
-        else:
-            alive = np.zeros((0, 4))
-
-        return alive
-
-    def _add_box_to_track(
-            self,
-            track_index: int,
-            new_bbox: np.ndarray
-    ) -> None:
-        """
-        Adds a new bounding box to an existing track.
-
-        Parameters
-        ----------
-        track_index: int
-            Index of the tracking object to append the box to.
-        new_bbox: np.ndarray
-            Bounding box to be appended in XYXY format.
-        """
-        self.alive_tracks[track_index].append_bbox(new_bbox)
-
-    def _kill_tracks(self, track_indices: list):
-        for ii in track_indices:
-            self.dead_tracks.append(self.alive_tracks[ii])
-        self.alive_tracks = [x for ii, x in enumerate(self.alive_tracks)
-                             if ii not in track_indices]
-
-    def _add_tracks(self, track_list: list):
-        for ii in track_list:
-            self.alive_tracks.append(ii)
-
-    def _merge_tracks(self) -> list:
-        return self.alive_tracks + self.dead_tracks
 
     def track_objects(self, detections: list):
         mots_style = coco2motsXYXY(detections)
@@ -372,25 +315,6 @@ class MaxOverlapTrackerOpticalFlow:
 
             self._kill_tracks(to_kill)
             self._add_tracks(new_tracks)
-
-    def kill_all(self):
-        self.dead_tracks += self.alive_tracks
-        self.alive_tracks = []
-
-    def output_tracks(self, out_path: str):
-        all_tracks = self._merge_tracks()
-        all_mots = []
-        for track in all_tracks:
-            all_mots += track.cvt_mots()
-
-        pd.DataFrame(all_mots).to_csv(out_path, header=False, index=False)
-
-    def cleanup_tracks(self, min_track_length: int, tol: float = 25):
-        # Remove any short sequences --> Outliers
-        self.dead_tracks = [x for x in self.dead_tracks if len(x) >= min_track_length]
-
-        # Remove static sequences
-        self.dead_tracks = [x for x in self.dead_tracks if x.get_avg_displ() > tol]
 
 
 def read_detections(json_file: str) -> list:

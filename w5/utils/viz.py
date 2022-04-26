@@ -44,3 +44,9 @@ def plot_embedding_space(
     else:
         plt.show()
     plt.close()
+
+
+def plot_heatmap_matrix(matrix: np.ndarray):
+    plt.figure()
+    plt.imshow(matrix, cmap="hot", interpolation="nearest")
+    plt.show()
