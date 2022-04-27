@@ -1,3 +1,5 @@
+import re
+
 from pathlib import Path
 
 from PIL import Image
@@ -50,6 +52,9 @@ class CarIdDataset(Dataset):
 
 
 class CarIdProcessed(Dataset):
+    camera_re = re.compile(r"c(\d\d\d)")
+    id_re = re.compile(r".*/(\d+)/\d+\.jpg")
+
     TFORMS = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
@@ -60,7 +65,7 @@ class CarIdProcessed(Dataset):
         self.labels = []
         self.paths = []
 
-        current_label = 1
+        current_label = 0
 
         root_path = Path(path)
         for camera in root_path.glob("ai_citiesS??c???"):
@@ -81,3 +86,15 @@ class CarIdProcessed(Dataset):
 
     def get_labels(self):
         return self.labels
+
+    def get_camera_and_label(self, label):
+        candidates = [ii for ii, gtlabel in enumerate(self.labels) if gtlabel == label]
+        paths = [self.paths[cand] for cand in candidates]
+
+        camera = self.camera_re.search(paths[0]).group(1)
+        actual_label = self.id_re.search(paths[0]).group(1)
+
+        return int(camera), int(actual_label)
+
+
+

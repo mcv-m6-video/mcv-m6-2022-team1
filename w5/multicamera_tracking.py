@@ -151,4 +151,35 @@ viz.plot_heatmap_matrix(distances)
 
 merger_indices = np.where(merger_candidates)
 
+equivalence_table = [[x] for x in range(len(unique_labels))]
 
+for aa, bb in zip(*merger_indices):
+    equivalence_table[aa].append(bb)
+    equivalence_table[bb].append(aa)
+
+equivalence_table = [list(set(x)) for x in equivalence_table]
+
+#%%
+conversion = {}
+all_cameras = []
+
+for label, equivalences in enumerate(equivalence_table):
+    newlabel = equivalences[0]
+    camera, actual_label = dataset.get_camera_and_label(label)
+    all_cameras.append(camera)
+    conversion[(camera, actual_label)] = newlabel
+
+all_cameras = list(set(all_cameras))
+
+#%%
+sequence = "S03"
+
+for camera in all_cameras:
+    camera_path = results_path / f"ai_cities{sequence}c{camera:03d}"
+
+    anns = data.load_annotations(str(camera_path / "track_purge.txt"))
+
+    for label in anns["ID"].unique():
+        anns[anns["ID"] == label] = conversion[(camera, label)]
+
+    anns.to_csv(str(camera_path / "track_multicam.txt"))
