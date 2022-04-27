@@ -7,7 +7,7 @@ perspectives, etc.)
 
 ## Running the code
 
-For Task 1, implementations from w3 and w4 are used. Please refer to them for more details [**Week 3**](./w3) [[**Week 4**](./w4)]
+For Task 1, implementations from w3 and w4 are used. Please refer to them for more details ([**week 3**](../w3) and [**week 4**](../w4)).
 
 ### Directories
 
