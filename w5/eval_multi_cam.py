@@ -62,12 +62,10 @@ def generate_gt_from_xml(in_path: str) -> pd.DataFrame:
 
 def main(args):
     out_path = Path(args.out_path)
-    start_frame = args.start_frame
-    end_frame = args.end_frame
-    sequences = ["S01"]
-    root_path = "/home/cisu/PycharmProjects/mcv-m6-2022-team1/w5/DATA/train/S01"
-    root_path = Path(root_path)
-
+    # start_frame = args.start_frame
+    # end_frame = args.end_frame
+    root_path = Path(args.root_path)
+    print(f"Evaluation for seq {root_path.parts[-1]}")
     acc_list_views = []
     view_names = []
     for camera in root_path.glob("*"):
@@ -75,6 +73,7 @@ def main(args):
         view_names.append(name)
         print(f"{name} in progress")
         gt_path = camera / "gt" / "gt.txt"
+        # TODO: rename with final tracking file
         pd_path = camera / "mtsc" / "mtsc_deepsort_mask_rcnn.txt"
 
         # Load data
@@ -91,8 +90,8 @@ def main(args):
         # Ground truth ids are the ones we want for reference
         unique_imgs_gt = gt_data["frame"].unique()
 
-        unique_imgs_gt = unique_imgs_gt[
-                np.logical_and(start_frame <= unique_imgs_gt, unique_imgs_gt <= end_frame)]
+        # unique_imgs_gt = unique_imgs_gt[
+        #     np.logical_and(start_frame <= unique_imgs_gt, unique_imgs_gt <= end_frame)]
 
         unique_imgs_gt.sort()
 
@@ -102,7 +101,7 @@ def main(args):
             gt_current = gt_data[gt_data["frame"] == ii]
             ann_current = ann_data[ann_data["frame"] == ii]
 
-                # Sanity check, although it should not be necessary
+            # Sanity check, although it should not be necessary
             if not len(gt_current):
                 continue
 
@@ -139,8 +138,17 @@ def main(args):
         acc_list_views,
         metrics=["idf1", "idp", "idr", "precision", "recall"],
         names=view_names)
-    summary.to_csv(str(out_path))
+
+    idf1_mean = np.mean(summary["idf1"].to_numpy())
+    idp_mean = np.mean(summary["idp"].to_numpy())
+    idr_mean = np.mean(summary["idr"].to_numpy())
+    precision_mean = np.mean(summary["precision"].to_numpy())
+    recall_mean = np.mean(summary["recall"].to_numpy())
+    summary.loc["average"] = [idf1_mean, idp_mean, idr_mean, precision_mean, recall_mean]
+
     print(summary)
+    summary.to_csv(str(out_path) + f"multicam_eval_{root_path.parts[-1]}.csv")
+
 
 
 if __name__ == "__main__":
@@ -149,31 +157,30 @@ if __name__ == "__main__":
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "gt_path",
+        "root_path",
         type=str,
-        help="Path to the ground truth data. Can either be a MOT track or an"
-             "xml file such as the one in the provided data",
+        help="Path to the sequence /train/S0X",
     )
-    parser.add_argument(
-        "pd_path",
-        type=str,
-        help="Path to the prediction file. A MOT track in txt format",
-    )
+    # parser.add_argument(
+    #     "pd_path",
+    #     type=str,
+    #     help="Path to the prediction file. A MOT track in txt format",
+    # )
     parser.add_argument(
         "out_path",
         type=str,
         help="Path to the output summary file (fn included)",
     )
-    parser.add_argument(
-        "start_frame",
-        type=int,
-        help="Starting frame to consider for testing",
-    )
-    parser.add_argument(
-        "end_frame",
-        type=int,
-        help="Final frame to consider for testing",
-    )
+    # parser.add_argument(
+    #     "start_frame",
+    #     type=int,
+    #     help="Starting frame to consider for testing",
+    # )
+    # parser.add_argument(
+    #     "end_frame",
+    #     type=int,
+    #     help="Final frame to consider for testing",
+    # )
 
     args = parser.parse_args()
     main(args)
