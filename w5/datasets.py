@@ -60,12 +60,16 @@ class CarIdProcessed(Dataset):
         self.labels = []
         self.paths = []
 
+        current_label = 1
+
         root_path = Path(path)
         for camera in root_path.glob("ai_citiesS??c???"):
             for track_id in (camera / "cars").glob("*"):
                 for frame in track_id.glob("*"):
-                    self.labels.append(int(track_id.parts[-1]))
+                    self.labels.append(current_label)
                     self.paths.append(str(frame))
+
+                current_label += 1
 
     def __len__(self):
         return len(self.labels)

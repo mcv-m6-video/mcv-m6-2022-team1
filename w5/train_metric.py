@@ -61,11 +61,6 @@ def main(args):
         "train"
     )
 
-    aug_test_dataset = CarIdDataset(
-        str(data_path),
-        cfg["dataset"]["test_sequences"],
-        "train"
-    )
     test_dataset = CarIdDataset(
         str(data_path),
         cfg["dataset"]["test_sequences"],
@@ -152,13 +147,12 @@ def main(args):
             model.eval()
 
             with torch.no_grad():
-                augmented_embeddings = tester.get_all_embeddings(aug_test_dataset, model)
                 reference_embeddings = tester.get_all_embeddings(test_dataset, model)
 
                 metrics = acc_calculator.get_accuracy(
-                    augmented_embeddings[0],
                     reference_embeddings[0],
-                    augmented_embeddings[1].squeeze(),
+                    reference_embeddings[0],
+                    reference_embeddings[1].squeeze(),
                     reference_embeddings[1].squeeze(),
                     embeddings_come_from_same_source=True
                 )

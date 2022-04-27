@@ -6,6 +6,7 @@ import torch
 
 from pathlib import Path
 from scipy.spatial.distance import cdist
+from pytorch_metric_learning import testers
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -100,25 +101,24 @@ model.load_state_dict(weights_dict)
 model = model.to(device)
 
 dataset = CarIdProcessed(str(results_path))
-dataloader = DataLoader(
-    dataset,
-    batch_size=50,
-    shuffle=False,
-    num_workers=2,
-)
 
-features = []
-labels = []
+tester = testers.BaseTester()
+features, labels = tester.get_all_embeddings(dataset, model)
+features = features.detach().cpu().numpy()
+labels = labels.detach().cpu().numpy().flatten()
 
-model.eval()
-with torch.no_grad():
-    for img, label in tqdm(dataloader, desc="Progress"):
-        img = img.to(device)
-        features.append(model(img).detach().cpu().numpy())
-        labels.append(label)
-
-features = np.vstack(features)
-labels = np.concatenate(labels)
+# features = []
+# labels = []
+#
+# model.eval()
+# with torch.no_grad():
+#     for img, label in tqdm(dataloader, desc="Progress"):
+#         img = img.to(device)
+#         features.append(model(img).detach().cpu().numpy())
+#         labels.append(label)
+#
+# features = np.vstack(features)
+# labels = np.concatenate(labels)
 
 #%%
 
@@ -138,17 +138,17 @@ for ii, label in enumerate(unique_labels):
 
 #%%
 
-
 # TODO Identify cars
 
 distances = cdist(average_features, average_features, metric="euclidean")
-merger_candidates = distances <= 0.3
+merger_candidates = distances <= 0.2
 merger_candidates = np.triu(merger_candidates, k=1)
 
-viz.plot_embedding_space(average_features, unique_labels.astype(int), -1)
+viz.plot_embedding_space(average_features, unique_labels, -1)
 viz.plot_heatmap_matrix(distances)
 
 #%%
 
+merger_indices = np.where(merger_candidates)
 
 
