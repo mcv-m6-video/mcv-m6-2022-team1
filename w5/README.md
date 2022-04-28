@@ -38,5 +38,30 @@ The following directory structures are assumed
             +-- segm
             +-- vdo_of          // Generated Optical Flow
             \-- vdo_frames      // Generated per-frame images
-`
+```
+### Data creation
+
+In order to begin with the training, one must first create the dataset. For that run the script 
+[**create_car_dataset.py**](./misc/create_car_dataset.py), where a hardcode variable ```gt_path``` indicates the path to AI 
+Cities dataset.
+
+### Metric Learning Train
+To start the metric learning process one might run the script [**train_metric.py**](./train_metric.py), indicating the
+ json file as the first argument  ```config_path``` (refer to [**configs**](./configs) for an example) and the path to 
+the AI Cities dataset as second argument 
+```dataset_path``` file . One can follow the training process using [**w&b**](https://wandb.ai/) tool.
+
+### Multi Camera Tracking
+For the multi camera tracking several variables are hardcoded:
+- ```results_path```: path to the folder containing the cropped car images clustered by id.
+- ```root_dataset_path```: dataset to the AI Cities dataset.
+- ```model_weights```: path where the model weights are stored.
+
+Once they are all set, run the script to find the car id's pairs.
+
+
+
+
+
+ 
 
