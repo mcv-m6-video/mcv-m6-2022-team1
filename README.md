@@ -6,6 +6,11 @@
 - Daniel Rodríguez ([email]())
 - Pau Torras ([email](pau.torras@autonoma.cat))
 
+## Documents
+
+- [Slides](https://docs.google.com/presentation/d/1KHIeRaVU9rx47YXly4TDBhmvBBmlSPR7i_l1E5ayaa8/edit?usp=sharing)
+- [Paper]()
+
 ## Overview
 
 Each week's assignments are written in a separate folder. Please check each

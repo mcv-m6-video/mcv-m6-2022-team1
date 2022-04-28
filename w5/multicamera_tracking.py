@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pathlib import Path
 from scipy.spatial.distance import cdist
 from pytorch_metric_learning import testers
@@ -12,33 +13,10 @@ from tqdm.auto import tqdm
 
 from track import Track
 from utils import data, viz
-from datasets import CarIdProcessed
+from datasets import CarIdProcessed, CarIdLargestFrame
 from models import CarIdResnet
 
-#%%
 
-# TODO Load tracks into a data structure
-def load_tracks_from_file(track_file: str):
-    all_tracks = data.load_annotations(track_file)
-    tracks = all_tracks["ID"].unique()
-
-    loaded_tracks = []
-
-    for track_id in tracks:
-        split_tracks = all_tracks[all_tracks["ID"] == track_id]
-        split_tracks = split_tracks.sort_values(by="frame")
-        first_frame = split_tracks["frame"].iloc[0]
-
-        car_frames = split_tracks[["left", "top", "width", "height"]].to_numpy()
-        car_frames[:, 2:] = car_frames[:, 0:2] + car_frames[:, 2:]
-
-        current_track = Track(track_id, car_frames[0], first_frame)
-        for bbox in car_frames[1:]:
-            current_track.append_bbox(bbox)
-        loaded_tracks.append(current_track)
-
-
-# TODO Extract car frames for each track
 def extract_track_cars(track_file: str, frame_path: str, out_path: str):
 
     all_tracks = data.load_annotations(track_file)
@@ -64,122 +42,141 @@ def extract_track_cars(track_file: str, frame_path: str, out_path: str):
             car = img[y1:y2, x1:x2]
             cv2.imwrite(str(out_path / f"{car_id}" / f"{frame}.jpg"), car)
 
-#%%
 
-results_path = "/home/pau/Documents/master/M6/project/repo/w4/results/train_models_testS03/faster_fpn"
-results_path = Path(results_path)
-root_dataset_path = "/home/pau/Documents/datasets/aicity/train"
-root_dataset_path = Path(root_dataset_path)
+def compute_features(weights_path: str, dataset):
+    device = torch.device("cuda")
+    model = CarIdResnet([512, 256])
 
-#%%
-sequence_re = re.compile("(S\d\d)")
-camera_re = re.compile("(c\d\d\d)")
+    weights_dict = torch.load(weights_path)
+    model.load_state_dict(weights_dict)
+    model = model.to(device)
 
-for camera in results_path.glob("ai_citiesS??c???"):
-    folder_name = camera.parts[-1]
+    tester = testers.BaseTester()
+    features, labels = tester.get_all_embeddings(dataset, model)
+    features = features.detach().cpu().numpy()
+    labels = labels.detach().cpu().numpy().flatten()
 
-    camera_name = camera_re.search(folder_name)[0]
-    sequence_name = sequence_re.search(folder_name)[0]
+    return features, labels
 
-    extract_track_cars(
-        str(camera / "track_purge.txt"),
-        str(root_dataset_path / f"{sequence_name}" / f"{camera_name}" / "vdo_frames"),
-        str(camera / "cars")
+
+
+def main(args):
+    results_path = Path(args.cam_folder)
+    root_dataset_path = Path(args.gt_path)
+
+    sequence_re = re.compile("(S\d\d)")
+    camera_re = re.compile("(c\d\d\d)")
+
+    # Extract camera frames # # # # # # # # # # # # # # # # # # # # # # # # # #
+    print("Extract frames...")
+    for camera in results_path.glob("ai_citiesS??c???"):
+        folder_name = camera.parts[-1]
+
+        camera_name = camera_re.search(folder_name)[0]
+        sequence_name = sequence_re.search(folder_name)[0]
+
+        extract_track_cars(
+            str(camera / args.track_filename),
+            str(root_dataset_path / f"{sequence_name}" / f"{camera_name}" / "vdo_frames"),
+            str(camera / "cars")
+        )
+    # Compute metric learning features  # # # # # # # # # # # # # # # # # # # #
+    print("Compute features...")
+    if args.aggregate_mode == "average":
+        dataset = CarIdProcessed(str(results_path))
+    else:
+        dataset = CarIdLargestFrame(str(results_path))
+
+    features, labels = compute_features(args.weights_path, dataset)
+
+    unique_labels = np.unique(labels)
+    average_features = np.empty((len(unique_labels), 256))
+
+    if args.aggregate_mode == "average":
+        for ii, label in enumerate(unique_labels):
+            current_fts = features[labels == label]
+            average_features[ii] = np.mean(current_fts, axis=0)
+
+
+    # Compute distances # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    print("Compute distances...")
+    distances = cdist(average_features, average_features, metric="euclidean")
+    merger_candidates = distances <= 0.3
+    merger_candidates = np.triu(merger_candidates, k=1)
+
+    # viz.plot_embedding_space(average_features, unique_labels, -1)
+    # viz.plot_heatmap_matrix(distances)
+
+    merger_indices = np.where(merger_candidates)
+
+    equivalence_table = [[x] for x in range(len(unique_labels))]
+
+    for aa, bb in zip(*merger_indices):
+        equivalence_table[aa].append(bb)
+        equivalence_table[bb].append(aa)
+
+    equivalence_table = [list(set(x)) for x in equivalence_table]
+
+    conversion = {}
+
+    for label, equivalences in enumerate(equivalence_table):
+        newlabel = equivalences[0]
+        camera, actual_label = dataset.get_camera_and_label(label)
+        conversion[(camera, actual_label)] = newlabel
+
+    sequence = sequence_re.search(
+        str(list(results_path.glob("ai_citiesS??c???"))[0])
+    ).group(1)
+
+    camera_re = re.compile("c(\d\d\d)")
+
+    all_cameras = [int(camera_re.search(str(x)).group(1)) for x in results_path.glob("ai_citiesS??c???")]
+
+    for camera in all_cameras:
+        camera_path = results_path / f"ai_cities{sequence}c{camera:03d}"
+
+        anns = data.load_annotations(str(camera_path / "track_purge.txt"))
+
+        id_column = anns.ID.to_numpy()
+
+        for label in anns["ID"].unique():
+            id_column[id_column == label] = conversion[(camera, label)]
+        anns.ID = id_column
+
+        anns.to_csv(str(camera_path / "track_multicam.txt"), header=False)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser(
+        description="Evaluate a track in MOT format",
+        formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "gt_path",
+        type=str,
+        help="Path to the ground truth data. Can either be a MOT track or an"
+             "xml file such as the one in the provided data",
+    )
+    parser.add_argument(
+        "weights_path",
+        type=str,
+        help="Path to the metric learning weights file",
+    )
+    parser.add_argument(
+        "cam_folder",
+        type=str,
+        help="Path to the prediction file. A MOT track in txt format",
+    )
+    parser.add_argument(
+        "track_filename",
+        type=str,
+        help="Track filename (to use whatever track is in the folder instead)",
+    )
+    parser.add_argument(
+        "aggregate_mode",
+        type=str,
+        help="Metric learning aggregation",
     )
 
-#%%
-
-# TODO Extract features for each car frame
-
-
-device = torch.device("cuda")
-
-model_weights = "/home/pau/Documents/master/M6/project/repo/w5/results/margin02/weights/weights_5.pth"
-model = CarIdResnet([512, 256])
-weights_dict = torch.load(model_weights)
-model.load_state_dict(weights_dict)
-model = model.to(device)
-
-dataset = CarIdProcessed(str(results_path))
-
-tester = testers.BaseTester()
-features, labels = tester.get_all_embeddings(dataset, model)
-features = features.detach().cpu().numpy()
-labels = labels.detach().cpu().numpy().flatten()
-
-# features = []
-# labels = []
-#
-# model.eval()
-# with torch.no_grad():
-#     for img, label in tqdm(dataloader, desc="Progress"):
-#         img = img.to(device)
-#         features.append(model(img).detach().cpu().numpy())
-#         labels.append(label)
-#
-# features = np.vstack(features)
-# labels = np.concatenate(labels)
-
-#%%
-
-# TODO Cluster features into a single describing feature vector
-
-unique_labels = np.unique(labels)
-average_features = np.empty((len(unique_labels), 256))
-std_features = np.empty((len(unique_labels), 256))
-
-for ii, label in enumerate(unique_labels):
-    current_ind = labels == label
-    current_fts = features[current_ind]
-
-    average_features[ii] = np.mean(current_fts, axis=0)
-    std_features[ii] = np.std(current_fts, axis=0)
-
-
-#%%
-
-# TODO Identify cars
-
-distances = cdist(average_features, average_features, metric="euclidean")
-merger_candidates = distances <= 0.2
-merger_candidates = np.triu(merger_candidates, k=1)
-
-viz.plot_embedding_space(average_features, unique_labels, -1)
-viz.plot_heatmap_matrix(distances)
-
-#%%
-
-merger_indices = np.where(merger_candidates)
-
-equivalence_table = [[x] for x in range(len(unique_labels))]
-
-for aa, bb in zip(*merger_indices):
-    equivalence_table[aa].append(bb)
-    equivalence_table[bb].append(aa)
-
-equivalence_table = [list(set(x)) for x in equivalence_table]
-
-#%%
-conversion = {}
-all_cameras = []
-
-for label, equivalences in enumerate(equivalence_table):
-    newlabel = equivalences[0]
-    camera, actual_label = dataset.get_camera_and_label(label)
-    all_cameras.append(camera)
-    conversion[(camera, actual_label)] = newlabel
-
-all_cameras = list(set(all_cameras))
-
-#%%
-sequence = "S03"
-
-for camera in all_cameras:
-    camera_path = results_path / f"ai_cities{sequence}c{camera:03d}"
-
-    anns = data.load_annotations(str(camera_path / "track_purge.txt"))
-
-    for label in anns["ID"].unique():
-        anns[anns["ID"] == label] = conversion[(camera, label)]
-
-    anns.to_csv(str(camera_path / "track_multicam.txt"))
+    args = parser.parse_args()
+    main(args)
