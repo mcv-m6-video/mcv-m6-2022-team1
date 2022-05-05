@@ -9,7 +9,7 @@
 ## Documents
 
 - [Slides](https://docs.google.com/presentation/d/1KHIeRaVU9rx47YXly4TDBhmvBBmlSPR7i_l1E5ayaa8/edit?usp=sharing)
-- [Paper]()
+- [Paper](https://www.overleaf.com/read/grgwcywxrsfk)
 
 ## Overview
 
